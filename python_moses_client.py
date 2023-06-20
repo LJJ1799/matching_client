@@ -37,17 +37,22 @@ def send_moses_message(con_socket, client_name, server_name, service_number, tas
 
 def receive_moses_message(con_socket):
 
-    while True:
+    # while True:
         # await response
         response = message_struct.unpack(con_socket.recv(4096))
 
         # some cleanup of the response to make it more human readable
         # the enconding for the decode() method may throw errors in some cases, latin-1 seems to work though
-        response_sender = response[0].decode('latin-1').split("\x00",1)[0] 
-        response_target = response[1].decode('latin-1').split("\x00",1)[0] 
+        response_sender = response[0].decode('latin-1').split("\x00",1)[0]
+        response_target = response[1].decode('latin-1').split("\x00",1)[0]
         response_task_number = response[2]
         response_service_number = response[3]
-        response_data = response[4].decode('latin-1').split("\x00",1)[0] 
+        response_data = response[4].decode('latin-1').split("\x00",1)[0]
+
+
+        # if response_task_number==63:
+            # print('kkkkk')
+            # send_moses_message(con_socket,'MOSES Server','MOSES_Cl1',8,8,'123')
 
         print("-------------------------")
         print("Message response:")
@@ -57,6 +62,7 @@ def receive_moses_message(con_socket):
         print("Service number: " + str(response_service_number))
         print("Data: " + response_data)
         print("-------------------------")
+        return response_sender,response_target,response_task_number,response_service_number, response_data
 
 if __name__ == "__main__":
     
@@ -64,48 +70,59 @@ if __name__ == "__main__":
     port = 1200
 
     con_socket = connect_moses_socket(host, port)
+    send_moses_message(con_socket,"Pierce_CSL", "MOSES_Cl1", 123, 0, 'Verbunden')
 
-    listener = threading.Thread(target = receive_moses_message, args=(con_socket,))
-    listener.daemon = True
-    listener.start()
+    # listener = threading.Thread(target = receive_moses_message, args=(con_socket,))
+    # listener.daemon = True
+    # listener.start()
 
     while True:
-        inp = input("Enter client name, server name, task number,service number, data separated only by a comma (no spaces):\n")
-        inp = inp.split(",")
-        
-        client_name = inp[0]
-        server_name = inp[1]
-        task_number = int(inp[2])
-        service_number = int(inp[3])
-        data = inp[4]
+        sender,target,task_number,service_number,data=receive_moses_message(con_socket)
+        # inp = input("Enter server name,client name,task number,service number, data separated only by a comma (no spaces):\n")
+        # inp = inp.split(",")
+        #
+        # server_name = inp[1]
+        # client_name = inp[0]
+        # task_number = int(inp[2])
+        # service_number = int(inp[3])
+        # data = inp[4]
         wz_path='welding_zone'
-        xml_path='Reisch/xml'
+        xml_path='Reisch/xml_name'
+        #
+        # # some cleanup of the response to make it more human readable
+        # # the enconding for the decode() method may throw errors in some cases, latin-1 seems to work though
+        #
         if service_number==63:
-            send_moses_message(con_socket,client_name,server_name,100,task_number,'Suche nach ähnlichen Schweißpositionen gestartet')
-            result=matching(task_number)
+            send_moses_message(con_socket,sender,target,123,task_number,'Suche nach ähnlichen Schweißpositionen gestartet')
+            result=matching(data)
             if len(result)==1:
-                send_moses_message(con_socket,client_name,server_name,140,task_number,'Keine ähnliche Schweißpositionen gefunden')
+                send_moses_message(con_socket,target,sender,123,task_number,'Keine ähnliche Schweißpositionen gefunden')
             else:
-                send_moses_message(con_socket,client_name,server_name,120,task_number,'Ähnliche Schweißpositionen gefunden')
+                sum_xml=''
+                send_moses_message(con_socket,sender,target,123,task_number,'Ähnliche Schweißpositionen gefunden')
                 #the best matching
                 matching_slice=list(result.keys())
                 for slice in matching_slice:
-                    print(slice.split('_')[1])
                     if int(slice.split('_')[1])==task_number:
                         continue
-                    send_moses_message(con_socket,client_name,server_name,120,task_number,xml_path+'/'+slice+'.xml')
-
-        #client_name = "PierceCSL"
-        #server_name = "MOSES Server"
-
-        #service_number = 120
-        #task_number    = 0
-
-        #data = "C:/Data/Test/hallo_welt.py"
-
-        print(listener.is_alive())
+                    xml_file=xml_path+'/'+slice+'.xml,'
+                    sum_xml+=xml_file
+                send_moses_message(con_socket,target,sender,123,task_number,sum_xml)
+        #
+        #
+        # client_name = "PierceCSL"
+        # server_name = "MOSES Server"
+        #
+        # service_number = 120
+        # task_number    = 0
+        #
+        # data = "C:/Data/Test/hallo_welt.py"
+        #
+        # print(listener.is_alive())
         # send_moses_message(con_socket, client_name, server_name, service_number, task_number, data)
-        sleep(0.5)
+        # sleep(0.5)
+
+
 
 
 
