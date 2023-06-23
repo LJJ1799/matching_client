@@ -1,3 +1,5 @@
+import copy
+
 import numpy as np
 import torch
 import time
@@ -187,7 +189,7 @@ if __name__ == "__main__":
     # net prepared
     net = DCP(args).cuda()
     net.load_state_dict(torch.load(args.model_path), strict=False)
-    file_path='./welding_zone'
+    file_path='../welding_zone'
     if args.testall:
 ##################This part is for matching all the point cloud one to one and save the dictionary to folder metrics#########################
         # files_origin=os.listdir(file_path)
@@ -212,11 +214,13 @@ if __name__ == "__main__":
             piont1 = point1 - centroid1
             m1 = np.max(np.sqrt(np.sum(point1 ** 2, axis=1)))
             point1 = point1 / m1
-            path1='result_img/'+str(files[i].split('.')[0])
+            # path1='result_img/'+str(files[i].split('.')[0])
             # os.mkdir(path1)
             dict1={}
             sub_dict={}
             for j in range(0,len(files)):
+                print(file_path + '/' + files[i])
+                print(file_path + '/' + files[j])
                 pcd2 = o3d.io.read_point_cloud(file_path+'/'+files[j])
                 point2 = np.array(pcd2.points).astype('float32')
                 centroid2 = np.mean(point2, axis=0)
@@ -227,38 +231,61 @@ if __name__ == "__main__":
                 src, target = point1, point2
 
                 ## run
-                src_pred, target_pred, r_ab, t_ab, r_ba, t_ba, mse_s_t,mae_s_t,mse_t_s,mae_t_s= run_one_pointcloud(src, target, net)
+                # src_pred, target_pred, r_ab, t_ab, r_ba, t_ba, mse_s_t,mae_s_t,mse_t_s,mae_t_s= run_one_pointcloud(src, target, net)
                 # anglex = np.random.uniform() * np.pi / 4
                 # angley = np.random.uniform() * np.pi / 4
                 # anglez = np.random.uniform() * np.pi / 4
                 # euler_ab = np.asarray([anglez, angley, anglex])
-                euler_ab = npmat2euler(np.array([np.eye(3)]))
-                r_ab_euler=npmat2euler(r_ab)
-                r_mse_ab=np.mean((r_ab_euler - np.degrees(euler_ab)) ** 2)
+                # euler_ab = npmat2euler(np.array([np.eye(3)]))
+                # r_ab_euler=npmat2euler(r_ab)
+                # r_mse_ab=np.mean((r_ab_euler - np.degrees(euler_ab)) ** 2)
                 # if mse_s_t>0.16 and mse_s_t <0.22:
                 #     continue
                 # if r_mse_ab >50 and r_mse_ab <200:
                 #     continue
-                sub_dict['mse']=mse_s_t
-                sub_dict['r_mse']=r_mse_ab
-                dict1[files[j].split('.')[0]]=sub_dict
+                # sub_dict['mse']=mse_s_t
+                # sub_dict['r_mse']=r_mse_ab
+                # dict1[files[j].split('.')[0]]=sub_dict
                 # print("#############  src -> target :\n", r_ab, t_ab,'mse:',mse_s_t,'mae:',mae_s_t)
                 # print("#############  src <- target :\n", r_ba, t_ba,'mse:',mse_t_s,'mae:',mae_t_s)
                 # np->open3d
 
+                # src_cloud = o3d.geometry.PointCloud()
+                # src_cloud.points = o3d.utility.Vector3dVector(point1*m1+centroid1)
+                # tgt_cloud = o3d.geometry.PointCloud()
+                # tgt_cloud.points = o3d.utility.Vector3dVector(point2*m2+centroid2)
+                # trans_cloud = o3d.geometry.PointCloud()
+                # trans_cloud.points = o3d.utility.Vector3dVector(target_pred*m1+centroid1)
                 src_cloud = o3d.geometry.PointCloud()
-                src_cloud.points = o3d.utility.Vector3dVector(point1*m1+centroid1)
+                src_cloud.points = o3d.utility.Vector3dVector(src)
+                src_cloud_copy = copy.copy(src_cloud)
                 tgt_cloud = o3d.geometry.PointCloud()
-                tgt_cloud.points = o3d.utility.Vector3dVector(point2*m2+centroid2)
-                trans_cloud = o3d.geometry.PointCloud()
-                trans_cloud.points = o3d.utility.Vector3dVector(target_pred*m1+centroid1)
-
+                tgt_cloud.points = o3d.utility.Vector3dVector(target)
+                icp = o3d.pipelines.registration.registration_icp(source=src_cloud, target=tgt_cloud,
+                                                                  max_correspondence_distance=0.2,
+                                                                  estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPoint())
+                result = src_cloud_copy.transform(icp.transformation)
+                distance=np.mean(src_cloud.compute_point_cloud_distance(tgt_cloud))
+                fitness=icp.fitness
+                rmse=icp.inlier_rmse
+                correspondence=len(np.asarray(icp.correspondence_set))
+                if distance>0.035 or rmse>0.035 or correspondence<2000:
+                    continue
+                print('fitness',fitness)
+                print('rmse',rmse)
+                print('correspondences',correspondence)
+                print('distance', distance)
                 # view
-                # src_cloud.paint_uniform_color([1, 0, 0])
-                # tgt_cloud.paint_uniform_color([0, 1, 0])
-                # trans_cloud.paint_uniform_color([0, 0, 1])
+                src_cloud.paint_uniform_color([1, 0, 0])
+                tgt_cloud.paint_uniform_color([0, 1, 0])
+                result.paint_uniform_color([0, 0, 1])
+                dict1[files[j].split('.')[0]] = {'rmse':icp.inlier_rmse,'distance':distance}
+                # sub_dict['rmse'] = icp.inlier_rmse
+                # sub_dict['distance'] = distance
+
+                # o3d.visualization.draw_geometries([src_cloud, tgt_cloud, result], width=800)
                 # all_point=src_cloud+tgt_cloud+trans_cloud
-                # # o3d.visualization.draw_geometries([src_cloud, tgt_cloud, trans_cloud], width=800)
+
                 # vis=o3d.visualization.Visualizer()
                 # vis.create_window()
                 # vis.add_geometry(all_point)
@@ -270,11 +297,15 @@ if __name__ == "__main__":
                 # vis.capture_screen_image(save_path)
                 # vis.destroy_window()
                 # time.sleep(0.2)
-            dict2=sorted(dict1.items(),key=lambda dict1:dict1[1]['mse'])
+                # print('dict1',dict1)
+            dict2=sorted(dict1.items(),key=lambda dict1:dict1[1]['rmse'])
             dict3=dict(dict2)
+            # print('dict3',dict3)
             dict_name=files[i].split('.')[0]+'.json'
-            tf=open('metrics/'+dict_name,'w')
-            json.dump(str(dict3),tf,indent=1)
+            with open('metric/'+dict_name,'w') as f:
+                f.write(json.dumps(dict3,indent=1))
+            # tf=open('metric/'+dict_name,'w')
+            # json.dump(str(dict3),tf,indent=0)
         end = time.time()
         print('time:',end-start)
     '''End of matching one to one'''
@@ -289,48 +320,54 @@ if __name__ == "__main__":
         file2=file_path+'/'+args.data[1]+'.pcd'
         pcd1=o3d.io.read_point_cloud(file1)
         point1=np.array(pcd1.points).astype('float32')
-        # centroid1=np.mean(point1,axis=0)
-        piont1=point1
+        centroid1=np.mean(point1,axis=0)
+        piont1=point1-centroid1
         m1 = np.max(np.sqrt(np.sum(point1 ** 2, axis=1)))
         point1=point1/m1
         pcd2=o3d.io.read_point_cloud(file2)
         point2=np.array(pcd2.points).astype('float32')
-        # centroid2 = np.mean(point2,axis=0)
-        piont2 = point2
+        centroid2 = np.mean(point2,axis=0)
+        piont2 = point2-centroid2
         m2 = np.max(np.sqrt(np.sum(point2 ** 2, axis=1)))
         point2 = point2 / m2
         # _,point2,_,_,_,_ = transform_input(point1)
         src, target = point1, point2
 
+
         ## run
-        src_pred, target_pred, r_ab, t_ab, r_ba, t_ba, mse_s_t,mae_s_t,mse_t_s,mae_t_s= run_one_pointcloud(src, target, net)
-        print('mse',mse_s_t)
-        print('r_ab',r_ab)
-        # anglex = np.random.uniform() * np.pi / 4
-        # angley = np.random.uniform() * np.pi / 4
-        # anglez = np.random.uniform() * np.pi / 4
-        # euler_ab = np.asarray([anglez, angley, anglex])
-        print(np.eye(3))
-        euler_ab=npmat2euler(np.array([np.eye(3)]))
-        print('euler_ab',euler_ab)
-        r_ab_euler = npmat2euler(r_ab)
-        print('r_ab_euler',r_ab_euler)
-        r_mse_ab = np.mean((r_ab_euler - np.degrees(euler_ab)) ** 2)
-        print('r_mse_ab',r_mse_ab)
+        # src_pred, target_pred, r_ab, t_ab, r_ba, t_ba, mse_s_t,mae_s_t,mse_t_s,mae_t_s= run_one_pointcloud(src, target, net)
+        # print('mse',mse_s_t)
+        # print('r_ab',r_ab)
+        # # anglex = np.random.uniform() * np.pi / 4
+        # # angley = np.random.uniform() * np.pi / 4
+        # # anglez = np.random.uniform() * np.pi / 4
+        # # euler_ab = np.asarray([anglez, angley, anglex])
+        # print(np.eye(3))
+        # euler_ab=npmat2euler(np.array([np.eye(3)]))
+        # print('euler_ab',euler_ab)
+        # r_ab_euler = npmat2euler(r_ab)
+        # print('r_ab_euler',r_ab_euler)
+        # r_mse_ab = np.mean((r_ab_euler - np.degrees(euler_ab)) ** 2)
+        # print('r_mse_ab',r_mse_ab)
         # print('total_error=error+rotation_norm+translation_norm',)
         # print('total_error=',mse_s_t,"+",norm_r,"+",norm_t,"=",mse_s_t+norm_r+norm_t)
         # np->open3d
         src_cloud = o3d.geometry.PointCloud()
-        src_cloud.points = o3d.utility.Vector3dVector(point1*m1)
+        src_cloud.points = o3d.utility.Vector3dVector(src)
+        src_cloud_copy=copy.copy(src_cloud)
         tgt_cloud = o3d.geometry.PointCloud()
-        tgt_cloud.points = o3d.utility.Vector3dVector(point2*m2)
-        trans_cloud = o3d.geometry.PointCloud()
-        trans_cloud.points = o3d.utility.Vector3dVector(target_pred*m1)
-
+        tgt_cloud.points = o3d.utility.Vector3dVector(target)
+        icp=o3d.pipelines.registration.registration_icp(source=src_cloud,target=tgt_cloud,max_correspondence_distance=0.2,estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPoint())
+        print(icp)
+        # print(icp.transformation)
+        result=src_cloud_copy.transform(icp.transformation)
+        # trans_cloud = o3d.geometry.PointCloud()
+        # trans_cloud.points = o3d.utility.Vector3dVector(result)
+        print('distance',np.mean(src_cloud.compute_point_cloud_distance(tgt_cloud)))
         # view
         src_cloud.paint_uniform_color([1, 0, 0])
         tgt_cloud.paint_uniform_color([0, 1, 0])
-        trans_cloud.paint_uniform_color([0, 0, 1])
+        result.paint_uniform_color([0, 0, 1])
         # all_cloud=src_cloud+tgt_cloud+trans_cloud
         # vis=o3d.visualization.Visualizer()
         # vis.create_window()
@@ -340,6 +377,6 @@ if __name__ == "__main__":
         # vis.update_renderer()
         # save_name=str(mse_s_t)+'_'+str(r_mse_ab)+'_'+args.data[0]+'_'+args.data[1]
         # save_path=os.path.join(save_name+'.png')
-        o3d.visualization.draw_geometries([src_cloud, tgt_cloud,trans_cloud], width=800)
+        o3d.visualization.draw_geometries([src_cloud,tgt_cloud,result], width=800)
         # vis.capture_screen_image(save_path)
         # vis.destroy_window()
