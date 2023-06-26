@@ -52,7 +52,7 @@ def run_one_pointcloud(src, target, net):
 
     return src_pred, target_pred, rotation_ab_pred, translation_ab_pred, rotation_ba_pred, translation_ba_pred,mse_s_t,mae_s_t,mse_t_s,mae_t_s
 
-def matching(slice):
+def matching(xml_file):
     parser = argparse.ArgumentParser(description='Point Cloud Registration')
     parser.add_argument('--exp_name', type=str, default='', metavar='N',
                         help='Name of the experiment')
@@ -107,9 +107,10 @@ def matching(slice):
     args = parser.parse_args()
     net = DCP(args).cuda()
     net.load_state_dict(torch.load(args.model_path), strict=False)
-    file_path='./welding_zone'
+    file_path='Reisch_pc_seam'
     #load point cloud 1
-    pcd1=o3d.io.read_point_cloud(file_path + '/' + 'Reisch_' + str(slice) + '.pcd')
+    slice=xml_file.split('.')[0]
+    pcd1=o3d.io.read_point_cloud(file_path + '/' + str(slice) + '.pcd')
     point1=np.array(pcd1.points).astype('float32')
     centroid1=np.mean(point1,axis=0)
     m1=np.max(np.sqrt(np.sum(point1 ** 2, axis=1)))
@@ -120,6 +121,7 @@ def matching(slice):
     torch.cuda.manual_seed_all(args.seed)
     files = os.listdir(file_path)
     dict1 = {}
+    src=point1
     for file in files:
         # load point cloud 2
         pcd2 = o3d.io.read_point_cloud(file_path + '/' + file)
@@ -129,30 +131,35 @@ def matching(slice):
         m2 = np.max(np.sqrt(np.sum(point2 ** 2, axis=1)))
         point2 = point2 / m2
         # path2 = 'result_img/' + str(files.split('.')[0])
-
+        target=point2
 
         #start mathing
-        src, target = point2, point1
-        src_pred, target_pred, r_ab, t_ab, r_ba, t_ba, mse_s_t, mae_s_t, mse_t_s, mae_t_s = run_one_pointcloud(src,
-                                                                                                               target,
-                                                                                                               net)
-        if mse_s_t>0.155:
-            continue
-        euler_ab = npmat2euler(np.array([np.eye(3)]))
-        r_ab_euler = npmat2euler(r_ab)
-        r_mse_ab = np.mean((r_ab_euler - np.degrees(euler_ab)) ** 2)
-
         src_cloud = o3d.geometry.PointCloud()
-        src_cloud.points = o3d.utility.Vector3dVector(point2 * m2 + centroid2)
+        src_cloud.points = o3d.utility.Vector3dVector(src)
         tgt_cloud = o3d.geometry.PointCloud()
-        tgt_cloud.points = o3d.utility.Vector3dVector(point1 * m1 + centroid1)
-        trans_cloud = o3d.geometry.PointCloud()
-        trans_cloud.points = o3d.utility.Vector3dVector(target_pred * m2 + centroid2)
+        tgt_cloud.points = o3d.utility.Vector3dVector(target)
+        icp_s_t = o3d.pipelines.registration.registration_icp(source=src_cloud, target=tgt_cloud,
+                                                              max_correspondence_distance=0.2,
+                                                              estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPoint())
+        icp_t_s = o3d.pipelines.registration.registration_icp(source=tgt_cloud, target=src_cloud,
+                                                              max_correspondence_distance=0.2,
+                                                              estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPoint())
 
-        dict1[file.split('.')[0]]=mse_s_t
+        mean_distance_s_t = np.mean(src_cloud.compute_point_cloud_distance(tgt_cloud))
+        fitness_s_t = icp_s_t.fitness
+        rmse_s_t = icp_s_t.inlier_rmse
+        correspondence_s_t = len(np.asarray(icp_s_t.correspondence_set))
+
+        mean_distance_t_s = np.mean(tgt_cloud.compute_point_cloud_distance(src_cloud))
+        fitness_t_s = icp_t_s.fitness
+        rmse_t_s = icp_t_s.inlier_rmse
+        correspondence_t_s = len(np.asarray(icp_t_s.correspondence_set))
+
+        if mean_distance_s_t > 0.03 or rmse_s_t > 0.03 or correspondence_s_t < 2000 or mean_distance_t_s > 0.03 or rmse_t_s > 0.03 or correspondence_t_s < 2000:
+            continue
+        dict1[file.split('.')[0]]=rmse_s_t
     dict2 = sorted(dict1.items(), key=lambda dict1: dict1[1])
     dict3 = dict(dict2)
-    dict_name = file.split('.')[0] + '.json'
     return dict3
 
 if __name__ == "__main__":

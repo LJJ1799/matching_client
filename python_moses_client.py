@@ -105,8 +105,9 @@ if __name__ == "__main__":
                 for slice in matching_slice:
                     if int(slice.split('_')[1])==task_number:
                         continue
-                    xml_file=xml_path+'/'+slice+'.xml,'
+                    xml_file=slice+'.xml, '
                     sum_xml+=xml_file
+                print(sum_xml)
                 send_moses_message(con_socket,target,sender,123,task_number,sum_xml)
         #
         #

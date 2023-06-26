@@ -189,7 +189,8 @@ if __name__ == "__main__":
     # net prepared
     net = DCP(args).cuda()
     net.load_state_dict(torch.load(args.model_path), strict=False)
-    file_path='../welding_zone'
+    file_path='Reisch_pc_seam'
+    # file_path='../welding_zone'
     if args.testall:
 ##################This part is for matching all the point cloud one to one and save the dictionary to folder metrics#########################
         # files_origin=os.listdir(file_path)
@@ -217,10 +218,10 @@ if __name__ == "__main__":
             # path1='result_img/'+str(files[i].split('.')[0])
             # os.mkdir(path1)
             dict1={}
+            dict2={}
+            dict3={}
             sub_dict={}
             for j in range(0,len(files)):
-                print(file_path + '/' + files[i])
-                print(file_path + '/' + files[j])
                 pcd2 = o3d.io.read_point_cloud(file_path+'/'+files[j])
                 point2 = np.array(pcd2.points).astype('float32')
                 centroid2 = np.mean(point2, axis=0)
@@ -261,25 +262,37 @@ if __name__ == "__main__":
                 src_cloud_copy = copy.copy(src_cloud)
                 tgt_cloud = o3d.geometry.PointCloud()
                 tgt_cloud.points = o3d.utility.Vector3dVector(target)
-                icp = o3d.pipelines.registration.registration_icp(source=src_cloud, target=tgt_cloud,
+                icp_s_t = o3d.pipelines.registration.registration_icp(source=src_cloud, target=tgt_cloud,
                                                                   max_correspondence_distance=0.2,
                                                                   estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPoint())
-                result = src_cloud_copy.transform(icp.transformation)
-                distance=np.mean(src_cloud.compute_point_cloud_distance(tgt_cloud))
-                fitness=icp.fitness
-                rmse=icp.inlier_rmse
-                correspondence=len(np.asarray(icp.correspondence_set))
-                if distance>0.035 or rmse>0.035 or correspondence<2000:
+                icp_t_s = o3d.pipelines.registration.registration_icp(source=tgt_cloud, target=src_cloud,
+                                                                  max_correspondence_distance=0.2,
+                                                                  estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPoint())
+                result_s_t = src_cloud_copy.transform(icp_s_t.transformation)
+
+                mean_distance_s_t = np.mean(src_cloud.compute_point_cloud_distance(tgt_cloud))
+                fitness_s_t=icp_s_t.fitness
+                rmse_s_t=icp_s_t.inlier_rmse
+                correspondence_s_t=len(np.asarray(icp_s_t.correspondence_set))
+
+                mean_distance_t_s=np.mean(tgt_cloud.compute_point_cloud_distance(src_cloud))
+                fitness_t_s=icp_t_s.fitness
+                rmse_t_s=icp_t_s.inlier_rmse
+                correspondence_t_s=len(np.asarray(icp_t_s.correspondence_set))
+
+                if mean_distance_s_t>0.03 or rmse_s_t>0.03 or correspondence_s_t<2000 or mean_distance_t_s>0.03 or rmse_t_s>0.03 or correspondence_t_s<2000:
                     continue
-                print('fitness',fitness)
-                print('rmse',rmse)
-                print('correspondences',correspondence)
-                print('distance', distance)
+                print(file_path + '/' + files[i])
+                print(file_path + '/' + files[j])
+                print('fitness', icp_s_t.fitness)
+                print('rmse', icp_s_t.inlier_rmse)
+                print('correspondences', correspondence_s_t)
+                print('mean_distance', mean_distance_s_t)
                 # view
                 src_cloud.paint_uniform_color([1, 0, 0])
                 tgt_cloud.paint_uniform_color([0, 1, 0])
-                result.paint_uniform_color([0, 0, 1])
-                dict1[files[j].split('.')[0]] = {'rmse':icp.inlier_rmse,'distance':distance}
+                result_s_t.paint_uniform_color([0, 0, 1])
+                dict1[files[j].split('.')[0]] = {'rmse':icp_s_t.inlier_rmse,'distance':mean_distance_s_t}
                 # sub_dict['rmse'] = icp.inlier_rmse
                 # sub_dict['distance'] = distance
 
@@ -299,7 +312,7 @@ if __name__ == "__main__":
                 # time.sleep(0.2)
                 # print('dict1',dict1)
             dict2=sorted(dict1.items(),key=lambda dict1:dict1[1]['rmse'])
-            dict3=dict(dict2)
+            dict3=dict(dict1)
             # print('dict3',dict3)
             dict_name=files[i].split('.')[0]+'.json'
             with open('metric/'+dict_name,'w') as f:
@@ -357,17 +370,39 @@ if __name__ == "__main__":
         src_cloud_copy=copy.copy(src_cloud)
         tgt_cloud = o3d.geometry.PointCloud()
         tgt_cloud.points = o3d.utility.Vector3dVector(target)
-        icp=o3d.pipelines.registration.registration_icp(source=src_cloud,target=tgt_cloud,max_correspondence_distance=0.2,estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPoint())
-        print(icp)
-        # print(icp.transformation)
-        result=src_cloud_copy.transform(icp.transformation)
-        # trans_cloud = o3d.geometry.PointCloud()
-        # trans_cloud.points = o3d.utility.Vector3dVector(result)
-        print('distance',np.mean(src_cloud.compute_point_cloud_distance(tgt_cloud)))
+        icp_s_t = o3d.pipelines.registration.registration_icp(source=src_cloud, target=tgt_cloud,
+                                                              max_correspondence_distance=0.2,
+                                                              estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPoint())
+        icp_t_s = o3d.pipelines.registration.registration_icp(source=tgt_cloud, target=src_cloud,
+                                                              max_correspondence_distance=0.2,
+                                                              estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPoint())
+        result_s_t = src_cloud_copy.transform(icp_s_t.transformation)
+
+        mean_distance_s_t = np.mean(src_cloud.compute_point_cloud_distance(tgt_cloud))
+        fitness_s_t = icp_s_t.fitness
+        rmse_s_t = icp_s_t.inlier_rmse
+        correspondence_s_t = len(np.asarray(icp_s_t.correspondence_set))
+
+        mean_distance_t_s = np.mean(tgt_cloud.compute_point_cloud_distance(src_cloud))
+        fitness_t_s = icp_t_s.fitness
+        rmse_t_s = icp_t_s.inlier_rmse
+        correspondence_t_s = len(np.asarray(icp_t_s.correspondence_set))
+        print('fitness', fitness_s_t)
+        print('rmse', rmse_s_t)
+        print('correspondences', correspondence_s_t)
+        print('mean_distance', mean_distance_s_t)
+
+        print('fitness2', fitness_t_s)
+        print('rmse2', rmse_t_s)
+        print('correspondences2', correspondence_t_s)
+        print('mean_distance2', mean_distance_t_s)
+        # print('mahalanobis_distance_src',mahalanobis_distance_src)
+        # print('mahalanobis_distance_tgt',mahalanobis_distance_tgt)
+        # print('diff',mahalanobis_distance_src-mahalanobis_distance_tgt)
         # view
         src_cloud.paint_uniform_color([1, 0, 0])
         tgt_cloud.paint_uniform_color([0, 1, 0])
-        result.paint_uniform_color([0, 0, 1])
+        result_s_t.paint_uniform_color([0, 0, 1])
         # all_cloud=src_cloud+tgt_cloud+trans_cloud
         # vis=o3d.visualization.Visualizer()
         # vis.create_window()
@@ -377,6 +412,6 @@ if __name__ == "__main__":
         # vis.update_renderer()
         # save_name=str(mse_s_t)+'_'+str(r_mse_ab)+'_'+args.data[0]+'_'+args.data[1]
         # save_path=os.path.join(save_name+'.png')
-        o3d.visualization.draw_geometries([src_cloud,tgt_cloud,result], width=800)
+        o3d.visualization.draw_geometries([src_cloud,tgt_cloud,result_s_t], width=800)
         # vis.capture_screen_image(save_path)
         # vis.destroy_window()
