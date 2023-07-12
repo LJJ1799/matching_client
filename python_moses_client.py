@@ -86,29 +86,30 @@ if __name__ == "__main__":
         # task_number = int(inp[2])
         # service_number = int(inp[3])
         # data = inp[4]
-        wz_path='welding_zone'
-        xml_path='Reisch/xml_name'
+        # wz_path='welding_zone'
+        # xml_path='Reisch/xml_name'
         #
         # # some cleanup of the response to make it more human readable
         # # the enconding for the decode() method may throw errors in some cases, latin-1 seems to work though
         #
         if service_number==63:
             send_moses_message(con_socket,sender,target,123,task_number,'Suche nach ähnlichen Schweißpositionen gestartet')
-            result=matching(data)
-            if len(result)==1:
-                send_moses_message(con_socket,target,sender,123,task_number,'Keine ähnliche Schweißpositionen gefunden')
-            else:
-                sum_xml=''
-                send_moses_message(con_socket,sender,target,123,task_number,'Ähnliche Schweißpositionen gefunden')
-                #the best matching
-                matching_slice=list(result.keys())
-                for slice in matching_slice:
-                    if int(slice.split('_')[1])==task_number:
-                        continue
-                    xml_file=slice+'.xml, '
-                    sum_xml+=xml_file
-                print(sum_xml)
-                send_moses_message(con_socket,target,sender,123,task_number,sum_xml)
+            matching(data)
+            send_moses_message(con_socket,target,sender,123,task_number,'Fertig')
+            # if len(result)==1:
+            #     send_moses_message(con_socket,target,sender,123,task_number,'Keine ähnliche Schweißpositionen gefunden')
+            # else:
+            #     sum_xml=''
+            #     send_moses_message(con_socket,sender,target,123,task_number,'Ähnliche Schweißpositionen gefunden')
+            #     #the best matching
+            #     matching_slice=list(result.keys())
+            #     for slice in matching_slice:
+            #         if int(slice.split('_')[1])==task_number:
+            #             continue
+            #         xml_file=slice+'.xml, '
+            #         sum_xml+=xml_file
+            #     print(sum_xml)
+            #     send_moses_message(con_socket,target,sender,123,task_number,sum_xml)
         #
         #
         # client_name = "PierceCSL"

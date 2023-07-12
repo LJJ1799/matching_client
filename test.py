@@ -1,128 +1,128 @@
 import copy
 
 import numpy as np
-import torch
+# import torch
 import time
 import os
-from model import DCP
-from util import transform_point_cloud, npmat2euler
+# from model import DCP
+# from util import transform_point_cloud, npmat2euler
 import argparse
-from scipy.spatial.transform import Rotation
-from data import ModelNet40
-import glob
-import h5py
+# from scipy.spatial.transform import Rotation
+# from data import ModelNet40
+# import glob
+# import h5py
 import open3d as o3d
-import pandas as pd
+# import pandas as pd
 import json
-from scipy.spatial.transform import Rotation
+# from scipy.spatial.transform import Rotation
 
-def npmat2euler(mats, seq='zyx'):
-    eulers = []
-    for i in range(mats.shape[0]):
-        r = Rotation.from_matrix(mats[i])
-        eulers.append(r.as_euler(seq, degrees=True))
-    return np.asarray(eulers, dtype='float32')
+# def npmat2euler(mats, seq='zyx'):
+#     eulers = []
+#     for i in range(mats.shape[0]):
+#         r = Rotation.from_matrix(mats[i])
+#         eulers.append(r.as_euler(seq, degrees=True))
+#     return np.asarray(eulers, dtype='float32')
 
-def transform_input(pointcloud):
-    """
-    random rotation and transformation the input
-    pointcloud: N*3
-    """
+# def transform_input(pointcloud):
+#     """
+#     random rotation and transformation the input
+#     pointcloud: N*3
+#     """
+#
+#     anglex = np.random.uniform() * np.pi / 4
+#     angley = np.random.uniform() * np.pi / 4
+#     anglez = np.random.uniform() * np.pi / 4
+#
+#     # anglex = 0.04
+#     # angley = 0.04
+#     # anglez = 0.04
+#
+#     print('angle: ', anglex, angley, anglez)
+#
+#     cosx = np.cos(anglex)
+#     cosy = np.cos(angley)
+#     cosz = np.cos(anglez)
+#     sinx = np.sin(anglex)
+#     siny = np.sin(angley)
+#     sinz = np.sin(anglez)
+#     Rx = np.array([[1, 0, 0],
+#                    [0, cosx, -sinx],
+#                    [0, sinx, cosx]])
+#     Ry = np.array([[cosy, 0, siny],
+#                    [0, 1, 0],
+#                    [-siny, 0, cosy]])
+#     Rz = np.array([[cosz, -sinz, 0],
+#                    [sinz, cosz, 0],
+#                    [0, 0, 1]])
+#     R_ab = Rx.dot(Ry).dot(Rz)
+#     R_ba = R_ab.T
+#     translation_ab = np.array([np.random.uniform(-0.5, 0.5),
+#                                np.random.uniform(-0.5, 0.5),
+#                                np.random.uniform(-0.5, 0.5)])
+#
+#     # translation_ab = np.array([0.01,0.05,0.05])
+#     # print('trans: ', translation_ab)
+#
+#     translation_ba = -R_ba.dot(translation_ab)
+#
+#     pointcloud1 = pointcloud[:, :3].T
+#
+#     rotation_ab = Rotation.from_euler('zyx', [anglez, angley, anglex])
+#     pointcloud2 = rotation_ab.apply(pointcloud1.T).T + np.expand_dims(translation_ab, axis=1)
+#
+#     euler_ab = np.asarray([anglez, angley, anglex])
+#     euler_ba = -euler_ab[::-1]
+#     rotation_ba = Rotation.from_euler('zyx', euler_ba)
+#
+#     pointcloud1 = np.random.permutation(pointcloud1.T)
+#     pointcloud2 = np.random.permutation(pointcloud2.T)
+#
+#     return pointcloud1.astype('float32'), pointcloud2.astype('float32'), \
+#         rotation_ab, translation_ab, rotation_ba, translation_ba
 
-    anglex = np.random.uniform() * np.pi / 4
-    angley = np.random.uniform() * np.pi / 4
-    anglez = np.random.uniform() * np.pi / 4
 
-    # anglex = 0.04
-    # angley = 0.04
-    # anglez = 0.04
-
-    print('angle: ', anglex, angley, anglez)
-
-    cosx = np.cos(anglex)
-    cosy = np.cos(angley)
-    cosz = np.cos(anglez)
-    sinx = np.sin(anglex)
-    siny = np.sin(angley)
-    sinz = np.sin(anglez)
-    Rx = np.array([[1, 0, 0],
-                   [0, cosx, -sinx],
-                   [0, sinx, cosx]])
-    Ry = np.array([[cosy, 0, siny],
-                   [0, 1, 0],
-                   [-siny, 0, cosy]])
-    Rz = np.array([[cosz, -sinz, 0],
-                   [sinz, cosz, 0],
-                   [0, 0, 1]])
-    R_ab = Rx.dot(Ry).dot(Rz)
-    R_ba = R_ab.T
-    translation_ab = np.array([np.random.uniform(-0.5, 0.5),
-                               np.random.uniform(-0.5, 0.5),
-                               np.random.uniform(-0.5, 0.5)])
-
-    # translation_ab = np.array([0.01,0.05,0.05])
-    # print('trans: ', translation_ab)
-
-    translation_ba = -R_ba.dot(translation_ab)
-
-    pointcloud1 = pointcloud[:, :3].T
-
-    rotation_ab = Rotation.from_euler('zyx', [anglez, angley, anglex])
-    pointcloud2 = rotation_ab.apply(pointcloud1.T).T + np.expand_dims(translation_ab, axis=1)
-
-    euler_ab = np.asarray([anglez, angley, anglex])
-    euler_ba = -euler_ab[::-1]
-    rotation_ba = Rotation.from_euler('zyx', euler_ba)
-
-    pointcloud1 = np.random.permutation(pointcloud1.T)
-    pointcloud2 = np.random.permutation(pointcloud2.T)
-
-    return pointcloud1.astype('float32'), pointcloud2.astype('float32'), \
-        rotation_ab, translation_ab, rotation_ba, translation_ba
-
-
-def run_one_pointcloud(src, target, net):
-    if len(src.shape) == 2 and len(target.shape) == 2:  ##  (N,3)
-
-        # print("src/target shape:", src.shape, target.shape)
-
-        src = np.expand_dims(src[:, :3], axis=0)
-        src = np.transpose(src, [0, 2, 1])  ##  (1, 3, 1024)
-        target = np.expand_dims(target[:, :3], axis=0)
-        target = np.transpose(target, [0, 2, 1])  ##  (1, 3, 1024)
-
-    net.eval()
-
-    src = torch.from_numpy(src).cuda()
-    target = torch.from_numpy(target).cuda()
-
-    rotation_ab_pred, translation_ab_pred, \
-        rotation_ba_pred, translation_ba_pred = net(src, target)
-    target_pred = transform_point_cloud(src, rotation_ab_pred,
-                                        translation_ab_pred)
-
-    src_pred = transform_point_cloud(target, rotation_ba_pred,
-                                     translation_ba_pred)
-
-    mse_s_t = torch.mean((target_pred - target) ** 2, dim=[0, 1, 2]).item()
-    mae_s_t = torch.mean(torch.abs(target_pred - target), dim=[0, 1, 2]).item()
-
-    mse_t_s = torch.mean((src_pred - src) ** 2, dim=[0, 1, 2]).item()
-    mae_t_s = torch.mean(torch.abs(src_pred - src), dim=[0, 1, 2]).item()
-    # put on cpu and turn into numpy
-    src_pred = src_pred.detach().cpu().numpy()
-    src_pred = np.transpose(src_pred[0], [1, 0])
-
-    target_pred = target_pred.detach().cpu().numpy()
-    target_pred = np.transpose(target_pred[0], [1, 0])
-
-    rotation_ab_pred = rotation_ab_pred.detach().cpu().numpy()
-    translation_ab_pred = translation_ab_pred.detach().cpu().numpy()
-
-    rotation_ba_pred = rotation_ba_pred.detach().cpu().numpy()
-    translation_ba_pred = translation_ba_pred.detach().cpu().numpy()
-
-    return src_pred, target_pred, rotation_ab_pred, translation_ab_pred, rotation_ba_pred, translation_ba_pred,mse_s_t,mae_s_t,mse_t_s,mae_t_s
+# def run_one_pointcloud(src, target, net):
+#     if len(src.shape) == 2 and len(target.shape) == 2:  ##  (N,3)
+#
+#         # print("src/target shape:", src.shape, target.shape)
+#
+#         src = np.expand_dims(src[:, :3], axis=0)
+#         src = np.transpose(src, [0, 2, 1])  ##  (1, 3, 1024)
+#         target = np.expand_dims(target[:, :3], axis=0)
+#         target = np.transpose(target, [0, 2, 1])  ##  (1, 3, 1024)
+#
+#     net.eval()
+#
+#     src = torch.from_numpy(src).cuda()
+#     target = torch.from_numpy(target).cuda()
+#
+#     rotation_ab_pred, translation_ab_pred, \
+#         rotation_ba_pred, translation_ba_pred = net(src, target)
+#     target_pred = transform_point_cloud(src, rotation_ab_pred,
+#                                         translation_ab_pred)
+#
+#     src_pred = transform_point_cloud(target, rotation_ba_pred,
+#                                      translation_ba_pred)
+#
+#     mse_s_t = torch.mean((target_pred - target) ** 2, dim=[0, 1, 2]).item()
+#     mae_s_t = torch.mean(torch.abs(target_pred - target), dim=[0, 1, 2]).item()
+#
+#     mse_t_s = torch.mean((src_pred - src) ** 2, dim=[0, 1, 2]).item()
+#     mae_t_s = torch.mean(torch.abs(src_pred - src), dim=[0, 1, 2]).item()
+#     # put on cpu and turn into numpy
+#     src_pred = src_pred.detach().cpu().numpy()
+#     src_pred = np.transpose(src_pred[0], [1, 0])
+#
+#     target_pred = target_pred.detach().cpu().numpy()
+#     target_pred = np.transpose(target_pred[0], [1, 0])
+#
+#     rotation_ab_pred = rotation_ab_pred.detach().cpu().numpy()
+#     translation_ab_pred = translation_ab_pred.detach().cpu().numpy()
+#
+#     rotation_ba_pred = rotation_ba_pred.detach().cpu().numpy()
+#     translation_ba_pred = translation_ba_pred.detach().cpu().numpy()
+#
+#     return src_pred, target_pred, rotation_ab_pred, translation_ab_pred, rotation_ba_pred, translation_ba_pred,mse_s_t,mae_s_t,mse_t_s,mae_t_s
 
 
 if __name__ == "__main__":
@@ -182,14 +182,14 @@ if __name__ == "__main__":
                         metavar='N',
                         help='Pretrained model path')
     args = parser.parse_args()
-    torch.backends.cudnn.deterministic = True
-    torch.manual_seed(args.seed)
-    torch.cuda.manual_seed_all(args.seed)
+    # torch.backends.cudnn.deterministic = True
+    # torch.manual_seed(args.seed)
+    # torch.cuda.manual_seed_all(args.seed)
 
     # net prepared
-    net = DCP(args).cuda()
-    net.load_state_dict(torch.load(args.model_path), strict=False)
-    file_path='Reisch_pc_seam'
+    # net = DCP(args).cuda()
+    # net.load_state_dict(torch.load(args.model_path), strict=False)
+    file_path='welding_zone'
     # file_path='../welding_zone'
     if args.testall:
 ##################This part is for matching all the point cloud one to one and save the dictionary to folder metrics#########################

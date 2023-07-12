@@ -20,27 +20,44 @@ def pretty_xml(element, indent, newline, level=0):  # elemnt为传进来的Elmen
 
 # files=os.listdir(model_path)
 # for file in files:
-xml_path = 'Reisch/Reisch.xml'
-target_path='Reisch/xml/Reisch'
-os.makedirs(target_path)
+
+xml_path = '../Reisch/Reisch.xml'
+target_path='Reisch'
+# os.makedirs(target_path)
 tree_src = ET.parse(xml_path)
 root = tree_src.getroot()
 SNahts=root.findall("SNaht")
+# print(SNahts)
 i=0
+similar='aaa'+','+'bbb'
 for SNaht in SNahts:
-    Konturs=SNaht.findall("Kontur")
-    for Kontur in Konturs:
-        FRAME_DUMP = ET.Element(root.tag, root.attrib)
-        SNaht_node = ET.SubElement(FRAME_DUMP, SNaht.tag, SNaht.attrib)
-        Konturs_node = ET.SubElement(SNaht_node, Kontur.tag)
-        Punkts=Kontur.findall("Punkt")
-        for Punkt in Punkts:
-            Konturs_node.append(Punkt)
-            tree = ET.ElementTree(FRAME_DUMP)
-            pretty_xml(FRAME_DUMP, '    ', '\n')
-        xml_name=os.path.join(target_path,'Reisch_'+str(i)+'.xml')
-        tree.write(xml_name, encoding="utf-8", xml_declaration=True, short_empty_elements=True)
-        i += 1
+#     SNaht.set('Naht_IDs',similar)
+#
+    print(SNaht.attrib)
+    dict={}
+    for key,value in SNaht.attrib.items():
+        dict[key] = value
+        if key=='ID':
+            dict['Naht_IDs']=similar
+    # print(dict)
+    SNaht.attrib.clear()
+    for key,value in dict.items():
+        SNaht.set(key,value)
+tree_src.write('tesing_xml.xml')
+    # Konturs=SNaht.findall("Kontur")
+    # for Kontur in Konturs:
+    #     FRAME_DUMP = ET.Element(root.tag, root.attrib)
+    #     SNaht_node = ET.SubElement(FRAME_DUMP, SNaht.tag, SNaht.attrib)
+    #     Konturs_node = ET.SubElement(SNaht_node, Kontur.tag)
+    #     Punkts=Kontur.findall("Punkt")
+    #     for Punkt in Punkts:
+    #         print(Punkt)
+    #         Konturs_node.append(Punkt)
+    #         tree = ET.ElementTree(FRAME_DUMP)
+    #         pretty_xml(FRAME_DUMP, '    ', '\n')
+    #         xml_name = os.path.join(target_path, 'Reisch_' + str(i) + '.xml')
+    #         tree.write('xml_name', encoding="utf-8", xml_declaration=True, short_empty_elements=True)
+    #         i += 1
 # print(i)
 # FRAME_DUMP=ET.Element('FRAME-DUMP',{"VERSION":"1.0","Baugruppe":"20102"})
 # SNaht=ET.SubElement(FRAME_DUMP,'SNaht',{"Name":"AutoDetect_2_0","ZRotLock":"0","WkzWkl":"45","WkzName":"MRW510_CDD_10GH"})
