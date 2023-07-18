@@ -189,7 +189,7 @@ if __name__ == "__main__":
     # net prepared
     # net = DCP(args).cuda()
     # net.load_state_dict(torch.load(args.model_path), strict=False)
-    file_path='welding_zone'
+    file_path='data/Reisch/welding_zone'
     # file_path='../welding_zone'
     if args.testall:
 ##################This part is for matching all the point cloud one to one and save the dictionary to folder metrics#########################
@@ -212,7 +212,7 @@ if __name__ == "__main__":
             pcd1 = o3d.io.read_point_cloud(file_path + '/' + files[i])
             point1 = np.array(pcd1.points).astype('float32')
             centroid1 = np.mean(point1, axis=0)
-            piont1 = point1 - centroid1
+            point1 = point1 - centroid1
             m1 = np.max(np.sqrt(np.sum(point1 ** 2, axis=1)))
             point1 = point1 / m1
             # path1='result_img/'+str(files[i].split('.')[0])
@@ -225,7 +225,7 @@ if __name__ == "__main__":
                 pcd2 = o3d.io.read_point_cloud(file_path+'/'+files[j])
                 point2 = np.array(pcd2.points).astype('float32')
                 centroid2 = np.mean(point2, axis=0)
-                piont2 = point2 - centroid2
+                point2 = point2 - centroid2
                 m2 = np.max(np.sqrt(np.sum(point2 ** 2, axis=1)))
                 point2 = point2 / m2
 
@@ -330,17 +330,18 @@ if __name__ == "__main__":
         # point1 = data[0,:,:]
         # print(len(point1))
         file1=file_path+'/'+args.data[0]+'.pcd'
+        print(os.path.abspath(file1))
         file2=file_path+'/'+args.data[1]+'.pcd'
         pcd1=o3d.io.read_point_cloud(file1)
         point1=np.array(pcd1.points).astype('float32')
         centroid1=np.mean(point1,axis=0)
-        piont1=point1-centroid1
+        point1=point1-centroid1
         m1 = np.max(np.sqrt(np.sum(point1 ** 2, axis=1)))
         point1=point1/m1
         pcd2=o3d.io.read_point_cloud(file2)
         point2=np.array(pcd2.points).astype('float32')
         centroid2 = np.mean(point2,axis=0)
-        piont2 = point2-centroid2
+        point2 = point2-centroid2
         m2 = np.max(np.sqrt(np.sum(point2 ** 2, axis=1)))
         point2 = point2 / m2
         # _,point2,_,_,_,_ = transform_input(point1)
