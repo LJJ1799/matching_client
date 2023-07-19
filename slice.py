@@ -308,10 +308,10 @@ def similarity(feature_dict1, feature_dict2, label_dict_r):
         loss_amount += abs(class_num_1_cur-class_num_2_cur)
     return 10*loss_norm + 10*loss_torch + loss_amount + loss_geo/100000
 
-def decrease_lib_dummy(path_data, path_train, path_wz, label_dict_r= None):
+def decrease_lib_dummy(path_data,path_wz, label_dict_r= None):
     path = os.path.join(path_data, 'ss_lookup_table/dict')
-    if not os.path.exists(os.path.join(path_train, 'welding_zone_comp')):
-        os.makedirs(os.path.join(path_train, 'welding_zone_comp'))
+    if not os.path.exists(os.path.join(path_data, 'welding_zone_comp')):
+        os.makedirs(os.path.join(path_data, 'welding_zone_comp'))
     files = listdir(path)
     new_lib = files
     fileObject = open(os.path.join(path_data,'ss_lookup_table/comp.txt'), 'w')  
@@ -323,7 +323,7 @@ def decrease_lib_dummy(path_data, path_train, path_wz, label_dict_r= None):
         name = os.path.splitext(file)[0]
         src = os.path.join(path_wz, name+'.pcd')
         # src2 = './data/welding_zone/'+name+'.xml'
-        copyfile(src, os.path.join(path_train, 'welding_zone_comp', f'{name}.pcd'))
+        copyfile(src, os.path.join(path_data, 'welding_zone_comp', f'{name}.pcd'))
         # os.system('cp %s %s' % (src, os.path.join(path_train, 'welding_zone_comp')))
         # os.system('cp %s ./data/welding_zone_comp' % (src2))
 

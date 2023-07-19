@@ -1,8 +1,9 @@
+import xml.etree.ElementTree as ET
 import sys
 # Force python XML parser not faster C accelerators
 # because we can't hook the C implementation
 sys.modules['_elementtree'] = None
-import xml.etree.ElementTree as ET
+
 import numpy as np
 
 class LineNumberingParser(ET.XMLParser):
@@ -75,7 +76,7 @@ def parse_frame_dump(xml_file, safe_parsing= True):
                     Y = Pos.get('Y')
                     Z = Pos.get('Z')
                     torch_frame[0:3,3] = np.array([X,Y,Z])
-                    start_line = Pos._end_line_number
+                    start_line = 0
                 for XVek in Frame.findall('XVek'):
                     # 3x3 rotation
                     Xrot = np.array([XVek.get('X'), XVek.get('Y'), XVek.get('Z')])      
@@ -166,7 +167,7 @@ def list2array(total_info, safe_parsing= True):
 
 
 if __name__== '__main__':
-    tt = parse_frame_dump('./data_ll/train/models/Reisch/Reisch.xml')
+    tt = parse_frame_dump('../xml/Reisch.xml')
     # t = parse_frame_dump('data_error/train/models/201910204483_R1/201910204483_R1.xml')
     t = list2array(tt)
     print(t.shape)

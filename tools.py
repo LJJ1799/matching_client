@@ -1,13 +1,34 @@
-from utils.xml_parser import parse_frame_dump, list2array
+from utils.xml_parser import list2array,parse_frame_dump
 from utils.foundation import load_pcd_data, points2pcd, fps
 from utils.math_util import rotate_mat, rotation_matrix_from_vectors
 import os.path
+import sys
+
+
+
 import open3d as o3d
 import numpy as np
 import copy
-
-
-
+def get_distance(SNaht):
+    list1 = []
+    for punkt in SNaht.iter('Punkt'):
+        list2 = []
+        list2.append(float(punkt.attrib['X']))
+        list2.append(float(punkt.attrib['X']))
+        list2.append(float(punkt.attrib['X']))
+        list1.append(list2)
+    weld_info=np.asarray(list1)
+    x_diff = np.max(weld_info[:, 0]) - np.min(weld_info[:, 0])
+    if x_diff < 2:
+        x_diff = 0
+    y_diff = np.max(weld_info[:, 1]) - np.min(weld_info[:, 1])
+    if y_diff < 2:
+        y_diff = 0
+    z_diff = np.max(weld_info[:, 2]) - np.min(weld_info[:, 2])
+    if z_diff < 2:
+        z_diff = 0
+    distance = int(pow(pow(x_diff, 2) + pow(y_diff, 2) + pow(z_diff, 2), 0.5)) + 25
+    return distance
 def get_weld_info(xml_path):
     frames = list2array(parse_frame_dump(xml_path))
     weld_infos=[]
@@ -17,26 +38,6 @@ def get_weld_info(xml_path):
             weld_infos.append(tmp)
     weld_infos=np.vstack(weld_infos)
     return weld_infos
-
-def get_distance_and_translate(weld_info):
-    x_center = (np.max(weld_info[:,1]) + np.min(weld_info[:,1])) / 2
-    y_center = (np.max(weld_info[:,2]) + np.min(weld_info[:,2])) / 2
-    z_center = (np.max(weld_info[:,3]) + np.min(weld_info[:,3])) / 2
-    translate=np.array([x_center,y_center,z_center])
-    # print(weld_info[2][1:4])
-    x_diff=np.max(weld_info[:,1])-np.min(weld_info[:,1])
-    if x_diff<2:
-        x_diff=0
-    y_diff = np.max(weld_info[:, 2])-np.min(weld_info[:, 2])
-    if y_diff<2:
-        y_diff=0
-    z_diff = np.max(weld_info[:, 3])-np.min(weld_info[:, 3])
-    if z_diff<2:
-        z_diff=0
-    distance = int(pow(pow(x_diff,2)+pow(y_diff,2)+pow(z_diff,2),0.5))+25
-
-    return distance,translate
-
 
 def sample_and_label_alternative(path, path_pcd,label_dict, class_dict, density=40):
     '''Convert mesh to pointcloud
@@ -252,4 +253,7 @@ class WeldScene:
         if vis:
             o3d.visualization.draw_geometries([cropped_pc_large,bbox])
         return xyzl_crop, cropped_pc_large, weld_info
+if __name__ == "__main__":
+    xml_path = 'xml/Reisch.xml'
+    weld_info=get_weld_info(xml_path)
 

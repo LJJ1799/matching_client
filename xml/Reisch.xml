@@ -2971,7 +2971,7 @@
             </Frame>
         </Frames>
     </SNaht>
-    <SNaht Name="AutoDetect_161_10" ID="4157583183" Naht_IDs="4157601127" ZRotLock="0" WkzWkl="45" WkzName="TL2000_EFF20_17SO">
+    <SNaht Name="AutoDetect_161_10" ID="4157583183" Naht_IDs="4157584191,4157601127" ZRotLock="0" WkzWkl="45" WkzName="TL2000_EFF20_17SO">
         <Kontur>
             <Punkt X="-4503.281025641666" Y="-1212.061376386546" Z="2182.06137638638">
                 <Fl_Norm X="-1.405960790327801e-13" Y="1.000000000000431" Z="-3.61932706027801e-14" />
@@ -3095,7 +3095,7 @@
             </Frame>
         </Frames>
     </SNaht>
-    <SNaht Name="AutoDetect_161_6" ID="4157584191" Naht_IDs="4157601127" ZRotLock="0" WkzWkl="45" WkzName="TL2000_EFF20_17SO">
+    <SNaht Name="AutoDetect_161_6" ID="4157584191" Naht_IDs="4157583183,4157601127" ZRotLock="0" WkzWkl="45" WkzName="TL2000_EFF20_17SO">
         <Kontur>
             <Punkt X="-3193.28102564139" Y="-1212.061376386432" Z="2182.061376386364">
                 <Fl_Norm X="-1.405960790327801e-13" Y="1.000000000000431" Z="-3.61932706027801e-14" />
