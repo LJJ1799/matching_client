@@ -1,4 +1,3 @@
-# from utils.xml_parser import list2array,parse_frame_dump
 import xml.etree.ElementTree as ET
 import os.path
 from single_spot_table.obj_geo_based_classification import PFE,main
@@ -8,6 +7,7 @@ import open3d as o3d
 import numpy as np
 import time
 import sys
+from create_pc import split,convert
 CURRENT_PATH = os.path.abspath(__file__)
 BASE = os.path.dirname(CURRENT_PATH)
 ROOT = os.path.dirname(BASE)
@@ -30,24 +30,27 @@ def matching(xml_file):
     data_path = os.path.join('data',Baugruppe)
     pc_path = os.path.join(data_path,'labeled_pc')
     wz_path = os.path.join(data_path,'welding_zone')
-    if not os.path.exists(os.path.join(pc_path,Baugruppe+'.pcd')):
-        pfe = PFE(path_models=os.path.join(BASE,data_path,'models'),
-                  path_split=os.path.join(BASE,data_path,'split'),
-                  path_label_temp=os.path.join(BASE,data_path, 'label_temp_folder'),
-                  path_classes=os.path.join(BASE,data_path, 'parts_classification'),
-                  parallel=False,
-                  n_clusters=2,
-                  )
-        main(pfe)
-        lut = LookupTable(path_data=os.path.join(BASE,data_path), label='HFD', hfd_path_classes=os.path.join(BASE,data_path,'parts_classification'),
-                          pcl_density=40, crop_size=400, num_points=2048, \
-                          skip_sampling=False,
-                          skip_slicing=True, fast_sampling=True,
-                          decrease_lib=False)
-        lut.make(2)
+    if not os.path.exists(os.path.join(data_path,Baugruppe+'.pcd')):
+        # pfe = PFE(path_models=os.path.join(BASE,data_path,'models'),
+        #           path_split=os.path.join(BASE,data_path,'split'),
+        #           path_label_temp=os.path.join(BASE,data_path, 'label_temp_folder'),
+        #           path_classes=os.path.join(BASE,data_path, 'parts_classification'),
+        #           parallel=False,
+        #           n_clusters=2,
+        #           )
+        # main(pfe)
+        # lut = LookupTable(path_data=os.path.join(BASE,data_path), label='HFD', hfd_path_classes=os.path.join(BASE,data_path,'parts_classification'),
+        #                   pcl_density=40, crop_size=400, num_points=2048, \
+        #                   skip_sampling=False,
+        #                   skip_slicing=True, fast_sampling=True,
+        #                   decrease_lib=False)
+        # lut.make(2)
+        split(data_path)
+        convert(data_path,wz_path,40)
+
     inter_time=time.time()
     print('creating pointcloud time',inter_time-start_time)
-    ws = WeldScene(os.path.join(pc_path,Baugruppe+'.pcd'))
+    ws = WeldScene(os.path.join(data_path,Baugruppe+'.pcd'))
     weld_infos=get_weld_info(xml_path)
     for SNaht in root.iter('SNaht'):
         slice_name = SNaht.attrib['Name']
@@ -55,8 +58,11 @@ def matching(xml_file):
             weld_info=weld_infos[weld_infos[:,0]==slice_name][:,3:].astype(float)
             if len(weld_info)==0:
                 continue
-            cxyzl, cpc, new_weld_info = ws.crop(weld_info=weld_info, num_points=2048)
-            points2pcd(os.path.join(wz_path, slice_name + '.pcd'), cxyzl)
+            cxyz, cpc, new_weld_info = ws.crop(weld_info=weld_info, num_points=2048)
+            pc = o3d.geometry.PointCloud()
+            pc.points = o3d.utility.Vector3dVector(cxyz)
+            o3d.io.write_point_cloud(os.path.join(wz_path, slice_name + '.pcd'), pointcloud=pc, write_ascii=True)
+            # points2pcd(os.path.join(wz_path, slice_name + '.pcd'), cxyzl)
     SNahts = root.findall("SNaht")
     for SNaht_src in SNahts:
         dict={}
@@ -75,6 +81,7 @@ def matching(xml_file):
         src=point1
         for SNaht_tgt in SNahts:
             tgt_name=SNaht_tgt.attrib.get('Name')
+            print(src_name,tgt_name)
             if src_name==tgt_name:
                 continue
             tgt_path=wz_path + '/' + tgt_name + '.pcd'
@@ -100,7 +107,7 @@ def matching(xml_file):
             fitness_s_t = icp_s_t.fitness
             rmse_s_t = icp_s_t.inlier_rmse
             correspondence_s_t = len(np.asarray(icp_s_t.correspondence_set))
-            if mean_distance_s_t > 0.04 or rmse_s_t > 0.04 or correspondence_s_t < 1900 or abs(seam_length_src-seam_length_tgt)>10:
+            if mean_distance_s_t > 0.045 or rmse_s_t > 0.045 or correspondence_s_t < 1900 or abs(seam_length_src-seam_length_tgt)>10:
                 continue
 
             icp_t_s = o3d.pipelines.registration.registration_icp(source=tgt_cloud, target=src_cloud,
@@ -114,7 +121,7 @@ def matching(xml_file):
             src_cloud.paint_uniform_color([1, 0, 0])
             tgt_cloud.paint_uniform_color([0, 1, 0])
             # o3d.visualization.draw_geometries([src_cloud, tgt_cloud], width=800)
-            if mean_distance_t_s > 0.04 or rmse_t_s > 0.04 or correspondence_t_s < 1900:
+            if mean_distance_t_s > 0.045 or rmse_t_s > 0.045 or correspondence_t_s < 1900:
                 continue
             if similar_str=='':
                 similar_str+=SNaht_tgt.attrib.get('ID')

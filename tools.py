@@ -125,11 +125,10 @@ class WeldScene:
 
     def __init__(self, pc_path):
         self.pc = o3d.geometry.PointCloud()
-        xyzl = load_pcd_data(pc_path)
+        pcd=o3d.io.read_point_cloud(pc_path)
         # print (xyzl.shape)
-        self.xyz = xyzl[:, 0:3]
-        self.l = xyzl[:, 3]
-        self.pc.points = o3d.utility.Vector3dVector(self.xyz)
+        self.xyz = np.asarray(pcd.points)
+        self.pc.points = o3d.utility.Vector3dVector(np.asarray(self.xyz))
 
     def rotation(self,axis,norm):
         rot_axis = np.cross(axis, norm) / (np.linalg.norm(axis) * np.linalg.norm(norm))
@@ -243,16 +242,14 @@ class WeldScene:
         xyz_crop = self.xyz[idx_crop_large]
         xyz_crop -= translate
         xyz_crop_new = np.matmul(rotation_matrix_from_vectors(norm_ori, norm_ori), xyz_crop.T).T
-        l_crop = self.l[idx_crop_large]
-        xyzl_crop = np.c_[xyz_crop_new, l_crop]
-        xyzl_crop = np.unique(xyzl_crop, axis=0)
 
-        while xyzl_crop.shape[0] < num_points:
-            xyzl_crop = np.vstack((xyzl_crop, xyzl_crop))
-        xyzl_crop = fps(xyzl_crop, num_points)
+
+        while xyz_crop_new.shape[0] < num_points:
+            xyz_crop_new = np.vstack((xyz_crop_new, xyz_crop_new))
+        xyz_crop_new = fps(xyz_crop_new, num_points)
         if vis:
             o3d.visualization.draw_geometries([cropped_pc_large,bbox])
-        return xyzl_crop, cropped_pc_large, weld_info
+        return xyz_crop_new, cropped_pc_large, weld_info
 if __name__ == "__main__":
     xml_path = 'xml/Reisch.xml'
     weld_info=get_weld_info(xml_path)
