@@ -14,10 +14,11 @@ def get_distance(SNaht):
     for punkt in SNaht.iter('Punkt'):
         list2 = []
         list2.append(float(punkt.attrib['X']))
-        list2.append(float(punkt.attrib['X']))
-        list2.append(float(punkt.attrib['X']))
+        list2.append(float(punkt.attrib['Y']))
+        list2.append(float(punkt.attrib['Z']))
         list1.append(list2)
     weld_info=np.asarray(list1)
+    seam_vector=weld_info[-1,:]-weld_info[0,:]
     x_diff = np.max(weld_info[:, 0]) - np.min(weld_info[:, 0])
     if x_diff < 2:
         x_diff = 0
@@ -28,7 +29,9 @@ def get_distance(SNaht):
     if z_diff < 2:
         z_diff = 0
     distance = int(pow(pow(x_diff, 2) + pow(y_diff, 2) + pow(z_diff, 2), 0.5)) + 25
-    return distance
+    print('list1',list1)
+    print('seam_vector',seam_vector)
+    return distance,seam_vector.astype(int)
 def get_weld_info(xml_path):
     frames = list2array(parse_frame_dump(xml_path))
     weld_infos=[]
@@ -151,7 +154,7 @@ class WeldScene:
         z_diff = np.max(weld_info[:, 3])-np.min(weld_info[:, 3])
         if z_diff<2:
             z_diff=0
-        distance = int(pow(pow(x_diff,2)+pow(y_diff,2)+pow(z_diff,2),0.5))+25
+        distance = int(pow(pow(x_diff,2)+pow(y_diff,2)+pow(z_diff,2),0.5))+50
 
         return distance,translate
 
@@ -173,7 +176,7 @@ class WeldScene:
         weld_seam=o3d.geometry.PointCloud()
         weld_seam.points=o3d.utility.Vector3dVector(weld_seam_points)
         distance,translate=self.get_distance_and_translate(weld_info)
-        extent = 90
+        extent = 200
         # crop_extent = np.array([max(x_diff,extent), max(y_diff,extent),max(z_diff,extent)])
         crop_extent=np.array([distance,extent+5,extent+5])
         # move the coordinate center to the welding spot

@@ -46,10 +46,11 @@ def matching(xml_file):
         #                   decrease_lib=False)
         # lut.make(2)
         split(data_path)
-        convert(data_path,wz_path,40)
+        convert(data_path,40)
 
     inter_time=time.time()
     print('creating pointcloud time',inter_time-start_time)
+    os.makedirs(wz_path,exist_ok=True)
     ws = WeldScene(os.path.join(data_path,Baugruppe+'.pcd'))
     weld_infos=get_weld_info(xml_path)
     for SNaht in root.iter('SNaht'):
@@ -71,7 +72,7 @@ def matching(xml_file):
         src_path=wz_path + '/' + src_name + '.pcd'
         if os.path.exists(src_path)!=True:
             continue
-        seam_length_src=get_distance(SNaht_src)
+        seam_length_src,seam_vec_src=get_distance(SNaht_src)
         pcd1=o3d.io.read_point_cloud(src_path)
         point1=np.array(pcd1.points).astype('float32')
         centroid1=np.mean(point1,axis=0)
@@ -87,7 +88,7 @@ def matching(xml_file):
             tgt_path=wz_path + '/' + tgt_name + '.pcd'
             if os.path.exists(tgt_path)!=True:
                 continue
-            seam_length_tgt=get_distance(SNaht_tgt)
+            seam_length_tgt,seam_vec_tgt=get_distance(SNaht_tgt)
             pcd2 = o3d.io.read_point_cloud(tgt_path)
             point2 = np.array(pcd2.points).astype('float32')
             centroid2 = np.mean(point2, axis=0)
@@ -96,6 +97,11 @@ def matching(xml_file):
             point2 = point2 / m2
             target = point2
 
+            seam_vec_diff=seam_vec_src-seam_vec_tgt
+            if abs(seam_vec_diff[0])>3 or abs(seam_vec_diff[1])>3 or abs(seam_vec_diff[2])>3:
+                continue
+            if abs(seam_length_src-seam_length_tgt)>5:
+                continue
             src_cloud = o3d.geometry.PointCloud()
             src_cloud.points = o3d.utility.Vector3dVector(src)
             tgt_cloud = o3d.geometry.PointCloud()
@@ -107,7 +113,7 @@ def matching(xml_file):
             fitness_s_t = icp_s_t.fitness
             rmse_s_t = icp_s_t.inlier_rmse
             correspondence_s_t = len(np.asarray(icp_s_t.correspondence_set))
-            if mean_distance_s_t > 0.045 or rmse_s_t > 0.045 or correspondence_s_t < 1900 or abs(seam_length_src-seam_length_tgt)>10:
+            if mean_distance_s_t > 0.03 or rmse_s_t > 0.03 or correspondence_s_t < 1900:
                 continue
 
             icp_t_s = o3d.pipelines.registration.registration_icp(source=tgt_cloud, target=src_cloud,
@@ -121,7 +127,7 @@ def matching(xml_file):
             src_cloud.paint_uniform_color([1, 0, 0])
             tgt_cloud.paint_uniform_color([0, 1, 0])
             # o3d.visualization.draw_geometries([src_cloud, tgt_cloud], width=800)
-            if mean_distance_t_s > 0.045 or rmse_t_s > 0.045 or correspondence_t_s < 1900:
+            if mean_distance_t_s > 0.03 or rmse_t_s > 0.03 or correspondence_t_s < 1900:
                 continue
             if similar_str=='':
                 similar_str+=SNaht_tgt.attrib.get('ID')

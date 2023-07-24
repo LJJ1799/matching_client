@@ -58,12 +58,12 @@ def split(data_path: str):
                 os.system('cp %s %s' % (os.path.join(model_path,namestr+'.mtl'),
                                         split_path))
 
-def convert(data_path,wz_path,density):
+def convert(data_path,density):
     path_split=os.path.join(data_path,'split')
     namestr = os.path.split(data_path)[-1]
     files = listdir(path_split)
     allpoints = np.zeros(shape=(1, 3))
-    os.makedirs(wz_path,exist_ok=True)
+    # os.makedirs(wz_path,exist_ok=True)
     for file in files:
         if os.path.splitext(file)[1] == '.obj':
             # load mesh
