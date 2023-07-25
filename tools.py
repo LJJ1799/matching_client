@@ -176,7 +176,7 @@ class WeldScene:
         weld_seam=o3d.geometry.PointCloud()
         weld_seam.points=o3d.utility.Vector3dVector(weld_seam_points)
         distance,translate=self.get_distance_and_translate(weld_info)
-        extent = 200
+        extent = 250
         # crop_extent = np.array([max(x_diff,extent), max(y_diff,extent),max(z_diff,extent)])
         crop_extent=np.array([distance,extent+5,extent+5])
         # move the coordinate center to the welding spot

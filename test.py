@@ -367,10 +367,10 @@ if __name__ == "__main__":
         # print('total_error=',mse_s_t,"+",norm_r,"+",norm_t,"=",mse_s_t+norm_r+norm_t)
         # np->open3d
         src_cloud = o3d.geometry.PointCloud()
-        src_cloud.points = o3d.utility.Vector3dVector(src)
+        src_cloud.points = o3d.utility.Vector3dVector(point1)
         src_cloud_copy=copy.copy(src_cloud)
         tgt_cloud = o3d.geometry.PointCloud()
-        tgt_cloud.points = o3d.utility.Vector3dVector(target)
+        tgt_cloud.points = o3d.utility.Vector3dVector(point2)
         icp_s_t = o3d.pipelines.registration.registration_icp(source=src_cloud, target=tgt_cloud,
                                                               max_correspondence_distance=0.2,
                                                               estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPoint())
@@ -378,7 +378,7 @@ if __name__ == "__main__":
                                                               max_correspondence_distance=0.2,
                                                               estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPoint())
         result_s_t = src_cloud_copy.transform(icp_s_t.transformation)
-
+        result_s_t.points=o3d.utility.Vector3dVector(np.asarray(result_s_t.points)*m1+centroid1)
         mean_distance_s_t = np.mean(src_cloud.compute_point_cloud_distance(tgt_cloud))
         fitness_s_t = icp_s_t.fitness
         rmse_s_t = icp_s_t.inlier_rmse
@@ -401,8 +401,8 @@ if __name__ == "__main__":
         # print('mahalanobis_distance_tgt',mahalanobis_distance_tgt)
         # print('diff',mahalanobis_distance_src-mahalanobis_distance_tgt)
         # view
-        src_cloud.paint_uniform_color([1, 0, 0])
-        tgt_cloud.paint_uniform_color([0, 1, 0])
+        pcd1.paint_uniform_color([1, 0, 0])
+        pcd2.paint_uniform_color([0, 1, 0])
         result_s_t.paint_uniform_color([0, 0, 1])
         # all_cloud=src_cloud+tgt_cloud+trans_cloud
         # vis=o3d.visualization.Visualizer()
@@ -413,6 +413,6 @@ if __name__ == "__main__":
         # vis.update_renderer()
         # save_name=str(mse_s_t)+'_'+str(r_mse_ab)+'_'+args.data[0]+'_'+args.data[1]
         # save_path=os.path.join(save_name+'.png')
-        o3d.visualization.draw_geometries([src_cloud,tgt_cloud,result_s_t], width=800)
+        o3d.visualization.draw_geometries([pcd1,pcd2])
         # vis.capture_screen_image(save_path)
         # vis.destroy_window()

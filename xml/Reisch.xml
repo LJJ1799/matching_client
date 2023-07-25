@@ -1695,7 +1695,7 @@
             </Frame>
         </Frames>
     </SNaht>
-    <SNaht Name="PgmDef_324_0" ID="4157566350" Naht_IDs="" ZRotLock="0" WkzWkl="45" WkzName="TL2000_EFF20_17SO">
+    <SNaht Name="PgmDef_324_0" ID="4157566350" Naht_IDs="4157576886" ZRotLock="0" WkzWkl="45" WkzName="TL2000_EFF20_17SO">
         <Kontur>
             <Punkt X="-5457.28000000016" Y="83.93862361606125" Z="2403.061376385801">
                 <Fl_Norm X="-1.000000000000071" Y="-3.22519788653608e-14" Z="4.551914400963142e-15" />
@@ -2635,7 +2635,7 @@
             </Frame>
         </Frames>
     </SNaht>
-    <SNaht Name="PgmDef_361_0" ID="4157576886" Naht_IDs="" ZRotLock="0" WkzWkl="45" WkzName="TL2000_EFF20_17SO">
+    <SNaht Name="PgmDef_361_0" ID="4157576886" Naht_IDs="4157566350" ZRotLock="0" WkzWkl="45" WkzName="TL2000_EFF20_17SO">
         <Kontur>
             <Punkt X="-8952.28000000089" Y="83.93862361850729" Z="2403.061376386967">
                 <Fl_Norm X="-1.000000000000151" Y="-9.540979117872439e-14" Z="-7.119305145408816e-15" />
