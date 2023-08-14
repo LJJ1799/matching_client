@@ -26,7 +26,6 @@ def split(data_path: str):
                 os.makedirs(split_path,exist_ok=True)
 
                 outstr = os.path.join(data_path,'split',namestr)
-                print('outsrt',outstr)
                 for line in f.readlines():
                     if line[0:1] == 'o':
                         idx_start = count

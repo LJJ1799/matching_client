@@ -29,8 +29,6 @@ def get_distance(SNaht):
     if z_diff < 2:
         z_diff = 0
     distance = int(pow(pow(x_diff, 2) + pow(y_diff, 2) + pow(z_diff, 2), 0.5)) + 25
-    print('list1',list1)
-    print('seam_vector',seam_vector)
     return distance,seam_vector.astype(int)
 def get_weld_info(xml_path):
     frames = list2array(parse_frame_dump(xml_path))
@@ -82,7 +80,6 @@ def sample_and_label_alternative(path, path_pcd,label_dict, class_dict, density=
                 xyz = np.asarray(pc.points)
                 l = label * np.ones(xyz.shape[0])
                 xyzl = np.c_[xyz, l]
-                # print (file, 'sampled point cloud: ', xyzl.shape)
                 allpoints = np.concatenate((allpoints, xyzl), axis=0)
     points2pcd(os.path.join(path_pcd, namestr+'.pcd'), allpoints[1:])
 
@@ -129,7 +126,6 @@ class WeldScene:
     def __init__(self, pc_path):
         self.pc = o3d.geometry.PointCloud()
         pcd=o3d.io.read_point_cloud(pc_path)
-        # print (xyzl.shape)
         self.xyz = np.asarray(pcd.points)
         self.pc.points = o3d.utility.Vector3dVector(np.asarray(self.xyz))
 
@@ -144,7 +140,6 @@ class WeldScene:
         y_center = (np.max(weld_info[:,2]) + np.min(weld_info[:,2])) / 2
         z_center = (np.max(weld_info[:,3]) + np.min(weld_info[:,3])) / 2
         translate=np.array([x_center,y_center,z_center])
-        # print(weld_info[2][1:4])
         x_diff=np.max(weld_info[:,1])-np.min(weld_info[:,1])
         if x_diff<2:
             x_diff=0
@@ -199,19 +194,9 @@ class WeldScene:
         norm1_r = np.matmul(rotation, norm1.T)
         norm2_r = np.matmul(rotation, norm2.T)
         # torch pose
-        pose = np.zeros((3, 3))
         for i in range(weld_info.shape[0]):
-            pose[0:3, 0] = weld_info[i,14:17]
-            pose[0:3, 1] = weld_info[i,17:20]
-            pose[0:3, 2] = weld_info[i,20:23]
-        # cauculate the new pose after rotation
-            pose_new = np.matmul(rotation, pose)
-
             weld_info[i,4:7] = norm1_r
             weld_info[i,7:10] = norm2_r
-            weld_info[i,14:17] = pose_new[0:3, 0]
-            weld_info[i,17:20] = pose_new[0:3, 1]
-            weld_info[i,20:23] = pose_new[0:3, 2]
 
         coor1 = o3d.geometry.TriangleMesh.create_coordinate_frame(size=20, origin=[0, 0, 0])
         mesh_arrow1 = o3d.geometry.TriangleMesh.create_arrow(

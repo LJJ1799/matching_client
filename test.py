@@ -413,6 +413,6 @@ if __name__ == "__main__":
         # vis.update_renderer()
         # save_name=str(mse_s_t)+'_'+str(r_mse_ab)+'_'+args.data[0]+'_'+args.data[1]
         # save_path=os.path.join(save_name+'.png')
-        o3d.visualization.draw_geometries([pcd1,pcd2])
+        o3d.visualization.draw_geometries([pcd1,pcd2,result_s_t])
         # vis.capture_screen_image(save_path)
         # vis.destroy_window()
