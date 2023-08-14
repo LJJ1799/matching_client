@@ -11,12 +11,12 @@ import numpy as np
 import time
 import torch
 import sys
+import shutil
 from create_pc import split,convert
 
 CURRENT_PATH = os.path.abspath(__file__)
-BASE = os.path.dirname(CURRENT_PATH)
-ROOT = os.path.dirname(BASE)
-
+ROOT = os.path.dirname(CURRENT_PATH)
+# ROOT = os.path.dirname(BASE)
 def config_params():
     parser = argparse.ArgumentParser(description='Configuration Parameters')
     parser.add_argument('--infer_npts', type=int, default=-1,
@@ -35,8 +35,6 @@ def config_params():
                         help='whether to use the cuda')
     parser.add_argument('--show',action='store_true',
                         help='whether to visualize')
-    parser.add_argument('--xml',default='Reisch',
-                        help='the points number of each pc for training')
     args = parser.parse_args()
     return args
 def evaluate_benchmark(args,src,tgt,model):
@@ -87,13 +85,13 @@ def evaluate_benchmark(args,src,tgt,model):
 
     return R, t, pred_ref_cloud
 
-def matching(args):
+def matching(xml_file,auto_del=False):
     start_time=time.time()
-    xml_path=os.path.join('xml',args.xml+'.xml')
+    xml_path=xml_file
     tree = ET.parse(xml_path)
     root = tree.getroot()
     Baugruppe=root.attrib['Baugruppe']
-    data_path = os.path.join('data',Baugruppe)
+    data_path = os.path.join(ROOT,'data',Baugruppe)
     pc_path = os.path.join(data_path,'labeled_pc')
     wz_path = os.path.join(data_path,'welding_zone')
     if not os.path.exists(os.path.join(data_path,Baugruppe+'.pcd')):
@@ -161,54 +159,54 @@ def matching(args):
             if abs(seam_length_src-seam_length_tgt)>5:
                 continue
 
-            if args.method == 'Benchmark':
-                R, t, pred_ref_cloud=evaluate_benchmark(args, src, target, model)
-                R_value = np.around(torch.mean(R).cpu().numpy(), decimals=4)
-                if(R_value<0.3331):
-                    continue
+            # if args.method == 'Benchmark':
+            #     R, t, pred_ref_cloud=evaluate_benchmark(args, src, target, model)
+            #     R_value = np.around(torch.mean(R).cpu().numpy(), decimals=4)
+            #     if(R_value<0.3331):
+            #         continue
 
-            elif args.method == 'icp':
-                centroid1 = np.mean(src, axis=0)
-                src = src - centroid1
-                m1 = np.max(np.sqrt(np.sum(src ** 2, axis=1)))
-                src = src / m1
+            # elif args.method == 'icp':
+            centroid1 = np.mean(src, axis=0)
+            src = src - centroid1
+            m1 = np.max(np.sqrt(np.sum(src ** 2, axis=1)))
+            src = src / m1
 
-                centroid2 = np.mean(target, axis=0)
-                target = target - centroid2
-                m2 = np.max(np.sqrt(np.sum(target ** 2, axis=1)))
-                target = target / m2
+            centroid2 = np.mean(target, axis=0)
+            target = target - centroid2
+            m2 = np.max(np.sqrt(np.sum(target ** 2, axis=1)))
+            target = target / m2
 
-                src_cloud = o3d.geometry.PointCloud()
-                src_cloud.points = o3d.utility.Vector3dVector(src)
-                tgt_cloud = o3d.geometry.PointCloud()
-                tgt_cloud.points = o3d.utility.Vector3dVector(target)
-                icp_s_t = o3d.pipelines.registration.registration_icp(source=src_cloud, target=tgt_cloud,
-                                                                      max_correspondence_distance=0.2,
-                                                                      estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPoint())
-                mean_distance_s_t = np.mean(src_cloud.compute_point_cloud_distance(tgt_cloud))
-                fitness_s_t = icp_s_t.fitness
-                rmse_s_t = icp_s_t.inlier_rmse
-                correspondence_s_t = len(np.asarray(icp_s_t.correspondence_set))
-                if mean_distance_s_t > 0.03 or rmse_s_t > 0.03 or correspondence_s_t < 1900:
-                    continue
+            src_cloud = o3d.geometry.PointCloud()
+            src_cloud.points = o3d.utility.Vector3dVector(src)
+            tgt_cloud = o3d.geometry.PointCloud()
+            tgt_cloud.points = o3d.utility.Vector3dVector(target)
+            icp_s_t = o3d.pipelines.registration.registration_icp(source=src_cloud, target=tgt_cloud,
+                                                                  max_correspondence_distance=0.2,
+                                                                  estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPoint())
+            mean_distance_s_t = np.mean(src_cloud.compute_point_cloud_distance(tgt_cloud))
+            fitness_s_t = icp_s_t.fitness
+            rmse_s_t = icp_s_t.inlier_rmse
+            correspondence_s_t = len(np.asarray(icp_s_t.correspondence_set))
+            if mean_distance_s_t > 0.03 or rmse_s_t > 0.03 or correspondence_s_t < 1900:
+                continue
 
-                icp_t_s = o3d.pipelines.registration.registration_icp(source=tgt_cloud, target=src_cloud,
-                                                                      max_correspondence_distance=0.2,
-                                                                      estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPoint())
+            icp_t_s = o3d.pipelines.registration.registration_icp(source=tgt_cloud, target=src_cloud,
+                                                                  max_correspondence_distance=0.2,
+                                                                  estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPoint())
 
-                mean_distance_t_s = np.mean(tgt_cloud.compute_point_cloud_distance(src_cloud))
-                fitness_t_s = icp_t_s.fitness
-                rmse_t_s = icp_t_s.inlier_rmse
-                correspondence_t_s = len(np.asarray(icp_t_s.correspondence_set))
-                src_cloud.paint_uniform_color([1, 0, 0])
-                tgt_cloud.paint_uniform_color([0, 1, 0])
-                # o3d.visualization.draw_geometries([src_cloud, tgt_cloud], width=800)
-                if mean_distance_t_s > 0.03 or rmse_t_s > 0.03 or correspondence_t_s < 1900:
-                    continue
-                if similar_str=='':
-                    similar_str+=SNaht_tgt.attrib.get('ID')
-                else:
-                    similar_str += (','+SNaht_tgt.attrib.get('ID'))
+            mean_distance_t_s = np.mean(tgt_cloud.compute_point_cloud_distance(src_cloud))
+            fitness_t_s = icp_t_s.fitness
+            rmse_t_s = icp_t_s.inlier_rmse
+            correspondence_t_s = len(np.asarray(icp_t_s.correspondence_set))
+            src_cloud.paint_uniform_color([1, 0, 0])
+            tgt_cloud.paint_uniform_color([0, 1, 0])
+            # o3d.visualization.draw_geometries([src_cloud, tgt_cloud], width=800)
+            if mean_distance_t_s > 0.03 or rmse_t_s > 0.03 or correspondence_t_s < 1900:
+                continue
+            if similar_str=='':
+                similar_str+=SNaht_tgt.attrib.get('ID')
+            else:
+                similar_str += (','+SNaht_tgt.attrib.get('ID'))
 
         for key,value in SNaht_src.attrib.items():
             if key=='ID':
@@ -222,19 +220,23 @@ def matching(args):
         for key,value in dict.items():
             SNaht_src.set(key,value)
         tree.write(xml_path)
+    if auto_del:
+        shutil.rmtree(wz_path)
+        os.makedirs(wz_path, exist_ok=True)
     end_time=time.time()
     print('total time=',end_time-start_time)
     return
 
 if __name__ == "__main__":
-    args=config_params()
-    if args.method == 'Benchmark':
-        model = IterativeBenchmark(in_dim=args.in_dim,
-                                   niters=args.niters,
-                                   gn=args.gn)
-        if args.cuda:
-            model = model.cuda()
-            model.load_state_dict(torch.load(args.checkpoint))
-        else:
-            model.load_state_dict(torch.load(args.checkpoint, map_location=torch.device('cpu')))
-    matching(args)
+    print(ROOT)
+    # args=config_params()
+    # if args.method == 'Benchmark':
+    #     model = IterativeBenchmark(in_dim=args.in_dim,
+    #                                niters=args.niters,
+    #                                gn=args.gn)
+    #     if args.cuda:
+    #         model = model.cuda()
+    #         model.load_state_dict(torch.load(args.checkpoint))
+    #     else:
+    #         model.load_state_dict(torch.load(args.checkpoint, map_location=torch.device('cpu')))
+    matching(os.path.join(ROOT,'xml','Reisch.xml'),auto_del=True)

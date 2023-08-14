@@ -4,6 +4,7 @@ import struct
 import threading
 from time import sleep
 from client_matching import matching
+import configparser
 # create a c++ struct like the message in the msclient source code
 # the original struct is copied below for convenience
 """
@@ -19,6 +20,8 @@ typedef struct mscl_nachricht { char sender[50]; //String mit 50 Zeichen,
 
 format = "50s 50s H B 256s"  # h is for a short int (2 bytes), b is for signed char (1 byte)
 message_struct = struct.Struct(format)
+CURRENT_PATH = os.path.abspath(__file__)
+ROOT = os.path.dirname(CURRENT_PATH)
 
 def connect_moses_socket(host, port):
 
@@ -66,8 +69,13 @@ def receive_moses_message(con_socket):
 
 if __name__ == "__main__":
     
-    host = socket.gethostbyname("localhost")
-    port = 1200
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+    host=config.get('config','server_ip')
+    port=int(config.get('config','port'))
+    xml_dir=config.get('config','xml_dir')
+    auto_del=config.get('config','auto_del')
+
 
     con_socket = connect_moses_socket(host, port)
     send_moses_message(con_socket,"Pierce_CSL", "MOSES_Cl1", 123, 0, 'Verbunden')
@@ -94,7 +102,7 @@ if __name__ == "__main__":
         #
         if service_number==63:
             send_moses_message(con_socket,sender,target,123,task_number,'Suche nach ähnlichen Schweißpositionen gestartet')
-            matching(data)
+            matching(os.path.join(ROOT,xml_dir,data+'.xml'),auto_del=auto_del)
             send_moses_message(con_socket,target,sender,123,task_number,'Fertig')
             # if len(result)==1:
             #     send_moses_message(con_socket,target,sender,123,task_number,'Keine ähnliche Schweißpositionen gefunden')
