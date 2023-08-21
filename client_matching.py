@@ -1,4 +1,5 @@
 import xml.etree.ElementTree as ET
+import open3d.core as o3c
 import argparse
 from models import Benchmark, IterativeBenchmark, icp, fgr
 import os.path
@@ -91,9 +92,8 @@ def matching(xml_file,auto_del=False):
     tree = ET.parse(xml_path)
     root = tree.getroot()
     Baugruppe=root.attrib['Baugruppe']
-    data_path = os.path.join(ROOT,'data',Baugruppe)
-    pc_path = os.path.join(data_path,'labeled_pc')
-    wz_path = os.path.join(data_path,'welding_zone')
+    data_path = os.path.join(ROOT,'data')
+    wz_path = os.path.join(data_path,Baugruppe+'_welding_zone')
     if not os.path.exists(os.path.join(data_path,Baugruppe+'.pcd')):
         # pfe = PFE(path_models=os.path.join(BASE,data_path,'models'),
         #           path_split=os.path.join(BASE,data_path,'split'),
@@ -109,8 +109,8 @@ def matching(xml_file,auto_del=False):
         #                   skip_slicing=True, fast_sampling=True,
         #                   decrease_lib=False)
         # lut.make(2)
-        split(data_path)
-        convert(data_path,40)
+        split(data_path,Baugruppe)
+        convert(data_path,40,Baugruppe)
 
     inter_time=time.time()
     print('creating pointcloud time',inter_time-start_time)
@@ -222,13 +222,13 @@ def matching(xml_file,auto_del=False):
         tree.write(xml_path)
     if auto_del:
         shutil.rmtree(wz_path)
-        os.makedirs(wz_path, exist_ok=True)
     end_time=time.time()
     print('total time=',end_time-start_time)
     return
 
 if __name__ == "__main__":
     print(ROOT)
+    matching(os.path.join(ROOT,'data','Aehn3TestJob1.xml'))
     # args=config_params()
     # if args.method == 'Benchmark':
     #     model = IterativeBenchmark(in_dim=args.in_dim,
@@ -239,4 +239,8 @@ if __name__ == "__main__":
     #         model.load_state_dict(torch.load(args.checkpoint))
     #     else:
     #         model.load_state_dict(torch.load(args.checkpoint, map_location=torch.device('cpu')))
-    matching(os.path.join(ROOT,'xml','Reisch.xml'),auto_del=True)
+    # models_path=os.path.join(ROOT,'data')
+    # folder_list=os.listdir(models_path)
+    # for folder in folder_list:
+    #     if folder=='10108'or folder=='10101' or folder=='10107':
+    #         matching(os.path.join(models_path,folder,folder+'.xml'),auto_del=False)

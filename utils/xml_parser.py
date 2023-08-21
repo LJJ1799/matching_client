@@ -167,7 +167,7 @@ def list2array(total_info, safe_parsing= True):
 
 
 if __name__== '__main__':
-    tt = parse_frame_dump('../xml/Reisch.xml')
+    tt = parse_frame_dump('../data/Reisch.xml')
     # t = parse_frame_dump('data_error/train/models/201910204483_R1/201910204483_R1.xml')
     t = list2array(tt)
     print(t.shape)

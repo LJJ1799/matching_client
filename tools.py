@@ -34,7 +34,9 @@ def get_weld_info(xml_path):
     frames = list2array(parse_frame_dump(xml_path))
     weld_infos=[]
     for i in range(len(frames)):
-        tmp = frames[frames[:, -2] == str(i)]
+        tmp = frames[frames[:, -2] == i]
+        if len(tmp)==0:
+            tmp = frames[frames[:, -2] == str(i)]
         if len(tmp) != 0:
             weld_infos.append(tmp)
     weld_infos=np.vstack(weld_infos)
@@ -230,15 +232,17 @@ class WeldScene:
         xyz_crop = self.xyz[idx_crop_large]
         xyz_crop -= translate
         xyz_crop_new = np.matmul(rotation_matrix_from_vectors(norm_ori, norm_ori), xyz_crop.T).T
+        print(xyz_crop_new)
 
+        if vis:
+            o3d.visualization.draw_geometries([cropped_pc_large,bbox,pc])
 
         while xyz_crop_new.shape[0] < num_points:
             xyz_crop_new = np.vstack((xyz_crop_new, xyz_crop_new))
         xyz_crop_new = fps(xyz_crop_new, num_points)
-        if vis:
-            o3d.visualization.draw_geometries([cropped_pc_large,bbox])
+
         return xyz_crop_new, cropped_pc_large, weld_info
 if __name__ == "__main__":
-    xml_path = 'xml/Reisch.xml'
+    xml_path = 'data/Reisch.xml'
     weld_info=get_weld_info(xml_path)
 
