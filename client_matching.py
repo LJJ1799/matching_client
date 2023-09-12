@@ -1,12 +1,16 @@
 import xml.etree.ElementTree as ET
 import open3d.core as o3c
+import json
 import argparse
-from models import Benchmark, IterativeBenchmark, icp, fgr
+from pointnn.save_pn_feature import save_feature
+from pointnn.cossim import pointnn
+from ICP_RMSE import ICP
+from PCReg import Benchmark, IterativeBenchmark, icp, fgr
 import os.path
 from util import npy2pcd
 from single_spot_table.obj_geo_based_classification import PFE,main
 from lut import LookupTable
-from tools import WeldScene,points2pcd,get_distance,get_weld_info
+from tools import points2pcd,get_distance,get_weld_info,WeldScene
 import open3d as o3d
 import numpy as np
 import time
@@ -18,26 +22,7 @@ from create_pc import split,convert
 CURRENT_PATH = os.path.abspath(__file__)
 ROOT = os.path.dirname(CURRENT_PATH)
 # ROOT = os.path.dirname(BASE)
-def config_params():
-    parser = argparse.ArgumentParser(description='Configuration Parameters')
-    parser.add_argument('--infer_npts', type=int, default=-1,
-                        help='the points number of each pc for training')
-    parser.add_argument('--in_dim', type=int, default=3,
-                        help='3 for (x, y, z) or 6 for (x, y, z, nx, ny, nz)')
-    parser.add_argument('--niters', type=int, default=8,
-                        help='iteration nums in one model forward')
-    parser.add_argument('--gn', action='store_true',
-                        help='whether to use group normalization')
-    parser.add_argument('--checkpoint', default='test_min_loss.pth',
-                        help='the path to the trained checkpoint')
-    parser.add_argument('--method', default='Benchmark',
-                        help='choice=[benchmark, icp]')
-    parser.add_argument('--cuda', default='True',action='store_true',
-                        help='whether to use the cuda')
-    parser.add_argument('--show',action='store_true',
-                        help='whether to visualize')
-    args = parser.parse_args()
-    return args
+
 def evaluate_benchmark(args,src,tgt,model):
     dura = []
     r_mse, r_mae, t_mse, t_mae, r_isotropic, t_isotropic = [], [], [], [], [], []
@@ -86,7 +71,7 @@ def evaluate_benchmark(args,src,tgt,model):
 
     return R, t, pred_ref_cloud
 
-def matching(xml_file,auto_del=False):
+def matching(xml_file,model,auto_del=False):
     start_time=time.time()
     xml_path=xml_file
     tree = ET.parse(xml_path)
@@ -117,109 +102,26 @@ def matching(xml_file,auto_del=False):
     os.makedirs(wz_path,exist_ok=True)
     ws = WeldScene(os.path.join(data_path,Baugruppe+'.pcd'))
     weld_infos=get_weld_info(xml_path)
-    for SNaht in root.iter('SNaht'):
-        slice_name = SNaht.attrib['Name']
-        if os.path.exists(os.path.join(wz_path,slice_name+'.pcd'))==False:
-            weld_info=weld_infos[weld_infos[:,0]==slice_name][:,3:].astype(float)
-            if len(weld_info)==0:
-                continue
-            cxyz, cpc, new_weld_info = ws.crop(weld_info=weld_info, num_points=2048)
-            pc = o3d.geometry.PointCloud()
-            pc.points = o3d.utility.Vector3dVector(cxyz)
-            o3d.io.write_point_cloud(os.path.join(wz_path, slice_name + '.pcd'), pointcloud=pc, write_ascii=True)
-            # points2pcd(os.path.join(wz_path, slice_name + '.pcd'), cxyzl)
     SNahts = root.findall("SNaht")
 
-    for SNaht_src in SNahts:
-        dict={}
-        similar_str=''
-        src_name=SNaht_src.attrib.get('Name')
-        src_path=wz_path + '/' + src_name + '.pcd'
-        if os.path.exists(src_path)!=True:
+    for SNaht in SNahts:
+        slice_name = SNaht.attrib['Name']
+        # if os.path.exists(os.path.join(wz_path,slice_name+'.pcd'))==False:
+        weld_info=weld_infos[weld_infos[:,0]==slice_name][:,3:].astype(float)
+        if len(weld_info)==0:
             continue
-        seam_length_src,seam_vec_src=get_distance(SNaht_src)
-        pcd1=o3d.io.read_point_cloud(src_path)
-        point1=np.array(pcd1.points).astype('float32')
-        src=point1
-        for SNaht_tgt in SNahts:
-            tgt_name=SNaht_tgt.attrib.get('Name')
-            if src_name==tgt_name:
-                continue
-            tgt_path=wz_path + '/' + tgt_name + '.pcd'
-            if os.path.exists(tgt_path)!=True:
-                continue
-            seam_length_tgt,seam_vec_tgt=get_distance(SNaht_tgt)
-            pcd2 = o3d.io.read_point_cloud(tgt_path)
-            point2 = np.array(pcd2.points).astype('float32')
-            target = point2
+        cxy, cpc, new_weld_info = ws.crop(weld_info=weld_info, num_points=2048)
+        pc = o3d.geometry.PointCloud()
+        pc.points = o3d.utility.Vector3dVector(cxy)
+        o3d.io.write_point_cloud(os.path.join(wz_path, slice_name + '.pcd'), pointcloud=pc, write_ascii=True)
 
-            seam_vec_diff=seam_vec_src-seam_vec_tgt
-            if abs(seam_vec_diff[0])>3 or abs(seam_vec_diff[1])>3 or abs(seam_vec_diff[2])>3:
-                continue
-            if abs(seam_length_src-seam_length_tgt)>5:
-                continue
+    if model == 'icp':
+        ICP(SNahts,wz_path,tree,xml_path)
 
-            # if args.method == 'Benchmark':
-            #     R, t, pred_ref_cloud=evaluate_benchmark(args, src, target, model)
-            #     R_value = np.around(torch.mean(R).cpu().numpy(), decimals=4)
-            #     if(R_value<0.3331):
-            #         continue
+    elif model == 'pointnn':
+        save_feature(wz_path)
+        pointnn(SNahts,tree,xml_path)
 
-            # elif args.method == 'icp':
-            centroid1 = np.mean(src, axis=0)
-            src = src - centroid1
-            m1 = np.max(np.sqrt(np.sum(src ** 2, axis=1)))
-            src = src / m1
-
-            centroid2 = np.mean(target, axis=0)
-            target = target - centroid2
-            m2 = np.max(np.sqrt(np.sum(target ** 2, axis=1)))
-            target = target / m2
-
-            src_cloud = o3d.geometry.PointCloud()
-            src_cloud.points = o3d.utility.Vector3dVector(src)
-            tgt_cloud = o3d.geometry.PointCloud()
-            tgt_cloud.points = o3d.utility.Vector3dVector(target)
-            icp_s_t = o3d.pipelines.registration.registration_icp(source=src_cloud, target=tgt_cloud,
-                                                                  max_correspondence_distance=0.2,
-                                                                  estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPoint())
-            mean_distance_s_t = np.mean(src_cloud.compute_point_cloud_distance(tgt_cloud))
-            fitness_s_t = icp_s_t.fitness
-            rmse_s_t = icp_s_t.inlier_rmse
-            correspondence_s_t = len(np.asarray(icp_s_t.correspondence_set))
-            if mean_distance_s_t > 0.03 or rmse_s_t > 0.03 or correspondence_s_t < 1900:
-                continue
-
-            icp_t_s = o3d.pipelines.registration.registration_icp(source=tgt_cloud, target=src_cloud,
-                                                                  max_correspondence_distance=0.2,
-                                                                  estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPoint())
-
-            mean_distance_t_s = np.mean(tgt_cloud.compute_point_cloud_distance(src_cloud))
-            fitness_t_s = icp_t_s.fitness
-            rmse_t_s = icp_t_s.inlier_rmse
-            correspondence_t_s = len(np.asarray(icp_t_s.correspondence_set))
-            src_cloud.paint_uniform_color([1, 0, 0])
-            tgt_cloud.paint_uniform_color([0, 1, 0])
-            # o3d.visualization.draw_geometries([src_cloud, tgt_cloud], width=800)
-            if mean_distance_t_s > 0.03 or rmse_t_s > 0.03 or correspondence_t_s < 1900:
-                continue
-            if similar_str=='':
-                similar_str+=SNaht_tgt.attrib.get('ID')
-            else:
-                similar_str += (','+SNaht_tgt.attrib.get('ID'))
-
-        for key,value in SNaht_src.attrib.items():
-            if key=='ID':
-                dict[key]=value
-                dict['Naht_IDs']=similar_str
-            elif key=='Naht_IDs':
-                continue
-            else:
-                dict[key]=value
-        SNaht_src.attrib.clear()
-        for key,value in dict.items():
-            SNaht_src.set(key,value)
-        tree.write(xml_path)
     if auto_del:
         shutil.rmtree(wz_path)
     end_time=time.time()
@@ -227,20 +129,6 @@ def matching(xml_file,auto_del=False):
     return
 
 if __name__ == "__main__":
-    print(ROOT)
-    matching(os.path.join(ROOT,'data','Aehn3TestJob1.xml'))
-    # args=config_params()
-    # if args.method == 'Benchmark':
-    #     model = IterativeBenchmark(in_dim=args.in_dim,
-    #                                niters=args.niters,
-    #                                gn=args.gn)
-    #     if args.cuda:
-    #         model = model.cuda()
-    #         model.load_state_dict(torch.load(args.checkpoint))
-    #     else:
-    #         model.load_state_dict(torch.load(args.checkpoint, map_location=torch.device('cpu')))
-    # models_path=os.path.join(ROOT,'data')
-    # folder_list=os.listdir(models_path)
-    # for folder in folder_list:
-    #     if folder=='10108'or folder=='10101' or folder=='10107':
-    #         matching(os.path.join(models_path,folder,folder+'.xml'),auto_del=False)
+    model = 'icp'
+    matching(os.path.join(ROOT,'data','Aehn3TestJob1.xml'),model)
+

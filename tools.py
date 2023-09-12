@@ -89,10 +89,10 @@ def sample_and_label_alternative(path, path_pcd,label_dict, class_dict, density=
 def points2pcd(path, points):
     """
     path: ***/***/1.pcd
-    points: ndarray, xyz+lable
+    points: ndarray, xyz+norm
     """
     point_num = points.shape[0]
-    # handle.write('VERSION .7\nFIELDS x y z label object\nSIZE 4 4 4 4 4\nTYPE F F F I I\nCOUNT 1 1 1 1 1')
+    # handle.write('VERSION .7\nFIELDS x y z norm object\nSIZE 4 4 4 4 4\nTYPE F F F I I\nCOUNT 1 1 1 1 1')
     # string = '\nWIDTH '+str(point_num)
     # handle.write(string)
     # handle.write('\nHEIGHT 1')
@@ -111,7 +111,8 @@ def points2pcd(path, points):
     points_f = np.c_[points, obj]
     for i in range(point_num):
         content += '\n' + str(points_f[i, 0]) + ' ' + str(points_f[i, 1]) + ' ' + \
-                   str(points_f[i, 2]) + ' ' + str(int(points_f[i, 3])) + ' ' + str(int(points_f[i, 4]))
+                   str(points_f[i, 2]) + ' ' + str(int(points_f[i, 3])) + ' ' + \
+                   str(int(points_f[i, 4]))+ ' ' + str(int(points_f[i, 5]))
 
     handle = open(path, 'w')
     handle.write(content)
@@ -192,7 +193,6 @@ class WeldScene:
         norm1 = np.around(weld_info[0, 4:7], decimals=6)
         norm2 = np.around(weld_info[0, 7:10], decimals=6)
 
-
         norm1_r = np.matmul(rotation, norm1.T)
         norm2_r = np.matmul(rotation, norm2.T)
         # torch pose
@@ -232,15 +232,14 @@ class WeldScene:
         xyz_crop = self.xyz[idx_crop_large]
         xyz_crop -= translate
         xyz_crop_new = np.matmul(rotation_matrix_from_vectors(norm_ori, norm_ori), xyz_crop.T).T
-        print(xyz_crop_new)
 
         if vis:
             o3d.visualization.draw_geometries([cropped_pc_large,bbox,pc])
 
-        while xyz_crop_new.shape[0] < num_points:
+        while (len(xyz_crop_new)!=0 and xyz_crop_new.shape[0] < num_points):
             xyz_crop_new = np.vstack((xyz_crop_new, xyz_crop_new))
         xyz_crop_new = fps(xyz_crop_new, num_points)
-
+        norm=np.vstack((norm1,norm2))
         return xyz_crop_new, cropped_pc_large, weld_info
 if __name__ == "__main__":
     xml_path = 'data/Reisch.xml'

@@ -1,0 +1,10 @@
+# ninja log v5
+0	28350	1694037212069010132	/home/liao/ignc/matching_client/pointnn/pointnet2_ops_lib/build/temp.linux-x86_64-3.7/pointnet2_ops/_ext-src/src/group_points.o	813f5e1d53997394
+0	29061	1694037212781011837	/home/liao/ignc/matching_client/pointnn/pointnet2_ops_lib/build/temp.linux-x86_64-3.7/pointnet2_ops/_ext-src/src/sampling.o	f397b41d537c2b65
+0	29074	1694037212797011876	/home/liao/ignc/matching_client/pointnn/pointnet2_ops_lib/build/temp.linux-x86_64-3.7/pointnet2_ops/_ext-src/src/ball_query.o	aa357f635403850
+0	30128	1694037213853014404	/home/liao/ignc/matching_client/pointnn/pointnet2_ops_lib/build/temp.linux-x86_64-3.7/pointnet2_ops/_ext-src/src/bindings.o	b3efb579a5ceb66c
+1	30302	1694037214033014835	/home/liao/ignc/matching_client/pointnn/pointnet2_ops_lib/build/temp.linux-x86_64-3.7/pointnet2_ops/_ext-src/src/interpolate.o	a6fd04ca36c823f1
+1	51468	1694037235205065647	/home/liao/ignc/matching_client/pointnn/pointnet2_ops_lib/build/temp.linux-x86_64-3.7/pointnet2_ops/_ext-src/src/ball_query_gpu.o	660af29347ccc78b
+2	52303	1694037236041067658	/home/liao/ignc/matching_client/pointnn/pointnet2_ops_lib/build/temp.linux-x86_64-3.7/pointnet2_ops/_ext-src/src/interpolate_gpu.o	f31eb7427e397fb4
+1	52792	1694037236529068832	/home/liao/ignc/matching_client/pointnn/pointnet2_ops_lib/build/temp.linux-x86_64-3.7/pointnet2_ops/_ext-src/src/sampling_gpu.o	3b52e60dd57866f5
+2	53561	1694037237297070679	/home/liao/ignc/matching_client/pointnn/pointnet2_ops_lib/build/temp.linux-x86_64-3.7/pointnet2_ops/_ext-src/src/group_points_gpu.o	d26f3477dad7539

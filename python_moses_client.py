@@ -75,7 +75,7 @@ if __name__ == "__main__":
     port=int(config.get('config','port'))
     xml_dir=config.get('config','xml_dir')
     auto_del=config.get('config','auto_del')
-
+    model = config.get('config','model')
 
     con_socket = connect_moses_socket(host, port)
     send_moses_message(con_socket,"Pierce_CSL", "MOSES_Cl1", 123, 0, 'Verbunden')
@@ -102,7 +102,7 @@ if __name__ == "__main__":
         #
         if service_number==63:
             send_moses_message(con_socket,sender,target,123,task_number,'Suche nach ähnlichen Schweißpositionen gestartet')
-            matching(os.path.join(ROOT,xml_dir,data+'.xml'),auto_del=auto_del)
+            matching(os.path.join(ROOT,xml_dir,data+'.xml'),model,auto_del=auto_del)
             send_moses_message(con_socket,target,sender,123,task_number,'Fertig')
             # if len(result)==1:
             #     send_moses_message(con_socket,target,sender,123,task_number,'Keine ähnliche Schweißpositionen gefunden')
