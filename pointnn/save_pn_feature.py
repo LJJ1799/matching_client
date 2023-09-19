@@ -1,6 +1,8 @@
 import argparse
 import datetime
 import logging
+import shutil
+
 import numpy as np
 import os
 import torch
@@ -102,7 +104,7 @@ def process_data(args,file_path):
 
     np.savez(load_data_path, data=datas, name=names)
     print('data lens: ', len(datas))
-
+    return load_data_path
 
 def save_feature(file_path):
     os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
@@ -167,7 +169,7 @@ def save_feature(file_path):
     features = []
     mynames = []
     with torch.no_grad():
-        process_data(args,file_path)
+        load_data_path=process_data(args,file_path)
         path = os.path.join(file_path,'pc_{}pts.npz'.format(args.input_num))
         datas = np.load(path,allow_pickle=True)['data']
         names = np.load(path,allow_pickle=True)['name']
@@ -185,6 +187,9 @@ def save_feature(file_path):
             mynames.append(str(names[iii]))
         features_path=os.path.join(BASE_DIR,'cnn_feature','pnn_tpc_cnn_feature')
         np.savez(features_path,cnn_feature=features,name=mynames)
+        print(load_data_path)
+        if os.path.exists(load_data_path):
+            os.remove(load_data_path)
         print(' saved cnn feature!')
 
 if __name__ == '__main__':

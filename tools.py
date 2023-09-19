@@ -2,14 +2,10 @@ from utils.xml_parser import list2array,parse_frame_dump
 from utils.foundation import load_pcd_data, points2pcd, fps
 from utils.math_util import rotate_mat, rotation_matrix_from_vectors
 import os.path
-import sys
-
-
-
 import open3d as o3d
 import numpy as np
 import copy
-def get_distance(SNaht):
+def get_distance_from_SNaht(SNaht):
     list1 = []
     for punkt in SNaht.iter('Punkt'):
         list2 = []
@@ -30,6 +26,20 @@ def get_distance(SNaht):
         z_diff = 0
     distance = int(pow(pow(x_diff, 2) + pow(y_diff, 2) + pow(z_diff, 2), 0.5)) + 25
     return distance,seam_vector.astype(int)
+
+def get_distance_from_seam(seam):
+    x_diff = np.max(seam[:, 0]) - np.min(seam[:, 0])
+    if x_diff < 2:
+        x_diff = 0
+    y_diff = np.max(seam[:, 1]) - np.min(seam[:, 1])
+    if y_diff < 2:
+        y_diff = 0
+    z_diff = np.max(seam[:, 2]) - np.min(seam[:, 2])
+    if z_diff < 2:
+        z_diff = 0
+    distance = int(pow(pow(x_diff, 2) + pow(y_diff, 2) + pow(z_diff, 2), 0.5)) + 25
+    return distance
+
 def get_weld_info(xml_path):
     frames = list2array(parse_frame_dump(xml_path))
     weld_infos=[]
@@ -39,8 +49,41 @@ def get_weld_info(xml_path):
             tmp = frames[frames[:, -2] == str(i)]
         if len(tmp) != 0:
             weld_infos.append(tmp)
-    weld_infos=np.vstack(weld_infos)
+    # weld_infos=np.vstack(weld_infos)
+    weld_infos=np.asarray(weld_infos)
     return weld_infos
+
+def get_ground_truth(weld_infos):
+    gt={}
+    for i in range (len(weld_infos)):
+        gt_list=[]
+        weld_info_1=weld_infos[i][:,14:-4].astype(float)
+        seam_1=weld_infos[i][:,4:7].astype(float)
+        ID_1=weld_infos[i][0,-1]
+        spot_number_1=len(seam_1)
+        distance_1=get_distance_from_seam(seam_1)
+        for j in range(len(weld_infos)):
+            weld_info_2=weld_infos[j][:,14:-4].astype(float)
+            seam_2 = weld_infos[j][:, 4:7].astype(float)
+            ID_2 = weld_infos[j][0, -1]
+            spot_number_2 = len(seam_2)
+            distance_2=get_distance_from_seam(seam_2)
+            if ID_1==ID_2:
+                continue
+            if abs(distance_1-distance_2)>3:
+                continue
+            if spot_number_1 != spot_number_2:
+                continue
+            flag=True
+            for n in range(weld_info_1.shape[0]):
+                for m in range(weld_info_1.shape[1]):
+                    if(abs(weld_info_1[n][m]-weld_info_2[n][m])>0.000005):
+                        flag=False
+            if flag:
+                gt_list.append(str(ID_2))
+        gt[str(ID_1)]=gt_list
+    return gt
+
 
 def sample_and_label_alternative(path, path_pcd,label_dict, class_dict, density=40):
     '''Convert mesh to pointcloud

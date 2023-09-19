@@ -189,7 +189,7 @@ if __name__ == "__main__":
     # net prepared
     # net = DCP(args).cuda()
     # net.load_state_dict(torch.load(args.model_path), strict=False)
-    file_path='data/Reisch/welding_zone'
+    file_path='data/Aehn3Test_welding_zone'
     # file_path='../welding_zone'
     if args.testall:
 ##################This part is for matching all the point cloud one to one and save the dictionary to folder metrics#########################
