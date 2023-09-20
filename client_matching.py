@@ -92,5 +92,5 @@ def matching(xml_file,model,auto_del=False):
     return
 
 if __name__ == "__main__":
-    model = 'pointnet2'
+    model = 'pointnext'
     matching(os.path.join(ROOT,'data','Reisch_delete_icp.xml'),model)
