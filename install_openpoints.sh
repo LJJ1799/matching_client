@@ -19,8 +19,6 @@ git submodule update --init --recursive
 git submodule update --remote --merge # update to the latest version
 
 # install PyTorch
-source activate
-conda.bat activate
 conda deactivate
 conda env remove --name openpoints
 conda create -n openpoints -y python=3.7 numpy=1.20 numba
