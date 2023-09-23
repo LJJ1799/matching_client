@@ -7,7 +7,7 @@ import open3d as o3d
 import time
 from openpoints.utils import EasyConfig, dist_utils, find_free_port, generate_exp_directory, resume_exp_directory, Wandb
 from openpoints.models import build_model_from_cfg
-from openpoints.dataset.mydataset.tools_dataset import pc_normalize,farthest_point_sampling
+from pointnet2.data_utils.tools_dataset import pc_normalize,farthest_point_sampling
 
 CURRENT_PATH = os.path.abspath(__file__)
 BASE_1 = os.path.dirname(CURRENT_PATH)
