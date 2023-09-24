@@ -76,7 +76,7 @@ def matching(xml_file,model,auto_del=False):
         retrieved_map=pointnn(SNahts,tree,xml_path)
 
     elif model == 'pointnet2':
-        pointnet2(wz_path,SNahts,tree,xml_path)
+        retrieved_map=pointnet2(wz_path,SNahts,tree,xml_path)
 
     elif model == 'pointnext':
         retrieved_map=pointnext(wz_path,SNahts,tree,xml_path)
@@ -92,5 +92,5 @@ def matching(xml_file,model,auto_del=False):
     return
 
 if __name__ == "__main__":
-    model = 'pointnext'
+    model = 'pointnet2'
     matching(os.path.join(ROOT,'data','Reisch.xml'),model)

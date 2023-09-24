@@ -110,44 +110,6 @@ def pointnet2(file_path,SNahts,tree,xml_path):
     tic = time.time()
 
     with torch.no_grad():
-        # retrieved_map = {}
-        # for SNaht_src in SNahts:
-        #     dict = {}
-        #     similar_list=[]
-        #     similar_str = ''
-        #     calculate_list=[]
-        #     src_ID=SNaht_src.attrib.get('ID')
-        #     src_name = SNaht_src.attrib.get('Name')
-        #     src_path = file_path + '/' + src_name + '.pcd'
-        #     if os.path.exists(src_path) != True:
-        #         continue
-        #     seam_length_src, seam_vec_src = get_distance(SNaht_src)
-        #     pcd1 = o3d.io.read_point_cloud(src_path)
-        #     point1 = np.array(pcd1.points).astype('float32')
-        #     src = pc_normalize(point1)
-        #     query_data = torch.from_numpy(src)[None, ...]
-        #     query_data = query_data.float().cuda()
-        #     query_data = query_data.transpose(2, 1)
-        #     for SNaht_tgt in SNahts:
-        #         tgt_ID=SNaht_tgt.attrib.get('ID')
-        #         tgt_name = SNaht_tgt.attrib.get('Name')
-        #         if src_name == tgt_name:
-        #             continue
-        #         tgt_path = file_path + '/' + tgt_name + '.pcd'
-        #         if os.path.exists(tgt_path) != True:
-        #             continue
-        #         seam_length_tgt, seam_vec_tgt = get_distance(SNaht_tgt)
-        #         pcd2 = o3d.io.read_point_cloud(tgt_path)
-        #         point2 = np.array(pcd2.points).astype('float32')
-        #         target = pc_normalize(point2)
-        #
-        #         seam_vec_diff = seam_vec_src - seam_vec_tgt
-        #         if abs(seam_vec_diff[0]) > 3 or abs(seam_vec_diff[1]) > 3 or abs(seam_vec_diff[2]) > 3:
-        #             continue
-        #         if abs(seam_length_src - seam_length_tgt) > 5:
-        #             continue
-        #
-        #         calculate_list.append(tgt_name)
         for pc_1 in pc_list:
             similar_list=[]
             query_id = all_names.index(pc_1)
@@ -188,9 +150,12 @@ def pointnet2(file_path,SNahts,tree,xml_path):
             attr_dict={}
             for key, value in SNaht.attrib.items():
                 if key == 'ID':
-                    print(retrieved_map[value])
-                    attr_dict[key] = value
-                    attr_dict['Naht_ID'] = ','.join(retrieved_map[value])
+                    if value in retrieved_map:
+                        print(retrieved_map[value])
+                        attr_dict[key] = value
+                        attr_dict['Naht_ID'] = ','.join(retrieved_map[value])
+                    else:
+                        continue
                 elif key == 'Naht_ID':
                     continue
                 else:

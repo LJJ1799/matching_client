@@ -119,10 +119,10 @@ def pointnext(file_path,SNahts,tree,xml_path):
                 tic_1=time.time()
                 pc_sim = sig(model(query_indata,compare_data))
                 toc_1=time.time()
-                print('one calculation time:',toc_1-tic_1)
+                # print('one calculation time:',toc_1-tic_1)
                 all_sim.extend(pc_sim.cpu().numpy().reshape(-1))
             toc = time.time()
-            print('DL processing time:', toc - tic)
+            # print('DL processing time:', toc - tic)
             st = np.argsort(all_sim)[::-1]
             print('query pc: '+query_pc)
             for s in st:
@@ -140,9 +140,12 @@ def pointnext(file_path,SNahts,tree,xml_path):
             attr_dict={}
             for key, value in SNaht.attrib.items():
                 if key == 'ID':
-                    print(retrieved_map[value])
-                    attr_dict[key] = value
-                    attr_dict['Naht_ID'] = ','.join(retrieved_map[value])
+                    if value in retrieved_map:
+                        print(retrieved_map[value])
+                        attr_dict[key] = value
+                        attr_dict['Naht_ID'] = ','.join(retrieved_map[value])
+                    else:
+                        continue
                 elif key == 'Naht_ID':
                     continue
                 else:
