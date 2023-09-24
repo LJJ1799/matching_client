@@ -8,9 +8,10 @@ ROOT_DIR = os.path.dirname(BASE_DIR)
 
 def pointnn(SNahts,tree,xml_path):
     name_id_dict={}
-    for SNaht in SNahts:
-        slice_name = SNaht.attrib['Name']
-        name_id_dict[slice_name] = SNaht.attrib['ID']
+    for Snaht in SNahts:
+        Name = Snaht.attrib.get('Name')
+        ID = Snaht.attrib.get('ID')
+        name_id_dict[Name] = ID
     print('name_id_dict',name_id_dict)
 
     feature_path = os.path.join(BASE_DIR, 'cnn_feature')

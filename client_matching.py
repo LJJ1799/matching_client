@@ -92,5 +92,5 @@ def matching(xml_file,model,auto_del=False):
     return
 
 if __name__ == "__main__":
-    model = 'pointnet2'
+    model = 'pointnn'
     matching(os.path.join(ROOT,'data','Reisch.xml'),model)
