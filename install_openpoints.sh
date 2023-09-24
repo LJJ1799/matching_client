@@ -15,9 +15,7 @@
 
 # download openpoints
 #git submodule add git@github.com:guochengqian/openpoints.git
-git submodule update --init --recursive
-git submodule update --remote --merge # update to the latest version
-
+git submodule update --init
 # install PyTorch
 conda deactivate
 conda env remove --name openpoints
@@ -33,6 +31,10 @@ conda install -c anaconda h5py
 
 pip install -r requirements.txt
 # install cpp extensions, the pointnet++ library
+cd pointnn/pointnet2_ops_lib
+python setup.py install
+cd ../../
+
 cd openpoints/cpp/pointnet2_batch
 python setup.py install
 cd ../
