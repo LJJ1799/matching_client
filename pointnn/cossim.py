@@ -49,8 +49,11 @@ def pointnn(SNahts,tree,xml_path):
         dict={}
         for key, value in SNaht.attrib.items():
             if key == 'ID':
-                dict[key] = value
-                dict['Naht_ID'] = ','.join(retrieved_map[value])
+                if value in retrieved_map:
+                    dict[key] = value
+                    dict['Naht_ID'] = ','.join(retrieved_map[value])
+                else:
+                    continue
             elif key == 'Naht_ID':
                 continue
             else:
