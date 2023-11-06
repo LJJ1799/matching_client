@@ -5,17 +5,16 @@ import torch,torch.nn
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import open3d as o3d
 import time
-from openpoints.utils import EasyConfig, dist_utils, find_free_port, generate_exp_directory, resume_exp_directory, Wandb
+from openpoints.utils import EasyConfig, dist_utils, generate_exp_directory, resume_exp_directory
 from openpoints.models import build_model_from_cfg
-from pointnet2.data_utils.tools_dataset import pc_normalize,farthest_point_sampling
+from openpoints.dataset.mydataset.tools_dataset import pc_normalize,farthest_point_sampling
 
 CURRENT_PATH = os.path.abspath(__file__)
 BASE_1 = os.path.dirname(CURRENT_PATH)
-print(BASE_1)
 ROOT = os.path.dirname(BASE_1)
 
 bs = 1 # 只支持1
-checkpoint_dir = os.path.join(BASE_1,'sim_checkpoint/model_50.pth')
+checkpoint_dir = os.path.join(BASE_1,'sim_checkpoint/model_80.pth')
 
 parser = argparse.ArgumentParser('S3DIS scene segmentation training')
 parser.add_argument('--cfg', type=str, default=os.path.join(BASE_1,'cfgs/modelnet40ply2048/pointnext-s.yaml'), help='config file')
@@ -68,7 +67,7 @@ cfg.input_num = args.input_num
 
 
 
-def pointnext(file_path,SNahts,tree,xml_path):
+def pointnext(file_path,SNahts,tree,xml_path,slice_name_list):
     model = build_model_from_cfg(cfg.model).to(cfg.rank)
    
     # criterion = build_criterion_from_cfg(cfg.criterion_args).cuda()
@@ -79,9 +78,7 @@ def pointnext(file_path,SNahts,tree,xml_path):
     
     sig = torch.nn.Sigmoid()
     # optimizer & scheduler
-    pcs = os.listdir(file_path)
-    print('all point cloud: \n')
-    print(pcs)
+    pc_list = slice_name_list
     checkpoint = torch.load(checkpoint_dir)
     start_epoch = checkpoint['epoch']
     model.load_state_dict(checkpoint['model_state_dict'])
@@ -92,16 +89,20 @@ def pointnext(file_path,SNahts,tree,xml_path):
         Name = Snaht.attrib.get('Name')
         ID = Snaht.attrib.get('ID')
         name_id[Name] = ID
-    print(name_id)
-    pc_list = os.listdir(file_path)
+    # print(name_id)
+
     all_datas, all_names = process_pc(file_path, pc_list)
-    retrieved_map = {}
+    retrieved_map_id = {}
+    retrieved_map_name = {}
     query_pcs = ['AutoDetect_25_26.pcd']
     tic = time.time()
 
     with torch.no_grad():
         for query_pc in pc_list:
+            if query_pc.split('.')[0] not in name_id:
+                continue
             similar_list=[]
+            similar_list_name=[]
             query_id = all_names.index(query_pc)
             query_data = all_datas[query_id]
             query_data = torch.from_numpy(query_data)
@@ -124,40 +125,42 @@ def pointnext(file_path,SNahts,tree,xml_path):
             toc = time.time()
             # print('DL processing time:', toc - tic)
             st = np.argsort(all_sim)[::-1]
-            print('query pc: '+query_pc)
+            # print('query pc: '+query_pc)
             for s in st:
                 if all_sim[s]<0.95:
                     continue
                 if all_names[s] == query_pc:
                     continue
                 similar_list.append(name_id[all_names[s].split('.')[0]])
+                similar_list_name.append(all_names[s].split('.')[0])
                 string = '点云: '+all_names[s]+', 相似度: {}'.format(all_sim[s])
-                print(string)
-            retrieved_map[name_id[query_pc.split('.')[0]]] = similar_list
-            print(query_pc+' finished!')
+                # print(string)
+            retrieved_map_id[name_id[query_pc.split('.')[0]]] = similar_list
+            retrieved_map_name[query_pc.split('.')[0]]=similar_list_name
+            # print(query_pc+' finished!')
 
-        for SNaht in SNahts:
-            attr_dict={}
-            for key, value in SNaht.attrib.items():
-                if key == 'ID':
-                    if value in retrieved_map:
-                        print(retrieved_map[value])
-                        attr_dict[key] = value
-                        attr_dict['Naht_ID'] = ','.join(retrieved_map[value])
-                    else:
-                        continue
-                elif key == 'Naht_ID':
-                    continue
-                else:
-                    attr_dict[key] = value
-            SNaht.attrib.clear()
-            for key, value in attr_dict.items():
-                SNaht.set(key, value)
-        tree.write(xml_path)
-        if os.path.exists('./log'):
-            shutil.rmtree('./log')
+        # for SNaht in SNahts:
+        #     attr_dict={}
+        #     for key, value in SNaht.attrib.items():
+        #         if key == 'ID':
+        #             if value in retrieved_map_id:
+        #                 # print(retrieved_map_id[value])
+        #                 attr_dict[key] = value
+        #                 attr_dict['Naht_ID'] = ','.join(retrieved_map_id[value])
+        #             else:
+        #                 continue
+        #         elif key == 'Naht_ID':
+        #             continue
+        #         else:
+        #             attr_dict[key] = value
+        #     SNaht.attrib.clear()
+        #     for key, value in attr_dict.items():
+        #         SNaht.set(key, value)
+        # tree.write(xml_path)
+        # if os.path.exists('./log'):
+        #     shutil.rmtree('./log')
 
-    return retrieved_map
+    return retrieved_map_id,retrieved_map_name
 
 
 def process_pc(query_pcdir,pcs):
@@ -171,7 +174,8 @@ def process_pc(query_pcdir,pcs):
             input=np.asarray(pcd.points)#A已经变成n*3的矩阵
             
             lens = len(input)
-
+            if lens==0:
+                continue
             if lens < 2048:
                 ratio = int(2048 /lens + 1)
                 tmp_input = np.tile(input, (ratio, 1))

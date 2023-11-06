@@ -5,6 +5,32 @@ import os.path
 import open3d as o3d
 import numpy as np
 import copy
+from openpoints.dataset.mydataset.tools_dataset import pc_normalize,farthest_point_sampling
+
+def process_pc(query_pcdir, pcs):
+    datas = []
+    names = []
+    for pc in pcs:
+        if pc.endswith('pcd'):
+            tmp_name = os.path.join(query_pcdir, pc)
+            pcd = o3d.io.read_point_cloud(tmp_name)  # 路径需要根据实际情况设置
+            input = np.asarray(pcd.points)  # A已经变成n*3的矩阵
+
+            lens = len(input)
+            if lens == 0:
+                continue
+            if lens < 2048:
+                ratio = int(2048 / lens + 1)
+                tmp_input = np.tile(input, (ratio, 1))
+                input = tmp_input[:2048]
+
+            if lens > 2048:
+                # np.random.shuffle(input) # 每次取不一样的1024个点
+                input = farthest_point_sampling(input, 2048)
+
+            input = pc_normalize(input)
+    return input
+
 def get_distance_from_SNaht(SNaht):
     list1 = []
     for punkt in SNaht.iter('Punkt'):
@@ -38,7 +64,7 @@ def get_distance_from_seam(seam):
     if z_diff < 2:
         z_diff = 0
     distance = int(pow(pow(x_diff, 2) + pow(y_diff, 2) + pow(z_diff, 2), 0.5)) + 25
-    return distance
+    return distance,x_diff,y_diff,z_diff
 
 def get_weld_info(xml_path):
     frames = list2array(parse_frame_dump(xml_path))
@@ -54,23 +80,30 @@ def get_weld_info(xml_path):
     return weld_infos
 
 def get_ground_truth(weld_infos):
-    gt={}
+    gt_id={}
+    gt_name={}
     for i in range (len(weld_infos)):
-        gt_list=[]
+        gt_id_list=[]
+        gt_name_list = []
+        name_1=weld_infos[i][0,0]
         weld_info_1=weld_infos[i][:,14:-4].astype(float)
         seam_1=weld_infos[i][:,4:7].astype(float)
         ID_1=weld_infos[i][0,-1]
         spot_number_1=len(seam_1)
-        distance_1=get_distance_from_seam(seam_1)
+        distance_1,x_diff1,y_diff1,z_diff1=get_distance_from_seam(seam_1)
         for j in range(len(weld_infos)):
+            name_2 = weld_infos[j][0, 0]
             weld_info_2=weld_infos[j][:,14:-4].astype(float)
             seam_2 = weld_infos[j][:, 4:7].astype(float)
             ID_2 = weld_infos[j][0, -1]
             spot_number_2 = len(seam_2)
-            distance_2=get_distance_from_seam(seam_2)
+            distance_2,x_diff2,y_diff2,z_diff2=get_distance_from_seam(seam_2)
             if ID_1==ID_2:
                 continue
             if abs(distance_1-distance_2)>3:
+                continue
+            if (abs(x_diff1-x_diff2)>2 or abs(y_diff1-y_diff2)>2 or abs(z_diff1
+                                                                         -z_diff2)>2):
                 continue
             if spot_number_1 != spot_number_2:
                 continue
@@ -80,9 +113,11 @@ def get_ground_truth(weld_infos):
                     if(abs(weld_info_1[n][m]-weld_info_2[n][m])>0.000005):
                         flag=False
             if flag:
-                gt_list.append(str(ID_2))
-        gt[str(ID_1)]=gt_list
-    return gt
+                gt_id_list.append(str(ID_2))
+                gt_name_list.append(str(name_2))
+        gt_id[str(ID_1)]=gt_id_list
+        gt_name[str(name_1)]=gt_name_list
+    return gt_id,gt_name
 
 
 def sample_and_label_alternative(path, path_pcd,label_dict, class_dict, density=40):

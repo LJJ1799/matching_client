@@ -12,7 +12,6 @@ def pointnn(SNahts,tree,xml_path):
         Name = Snaht.attrib.get('Name')
         ID = Snaht.attrib.get('ID')
         name_id_dict[Name] = ID
-    print('name_id_dict',name_id_dict)
 
     feature_path = os.path.join(BASE_DIR, 'cnn_feature')
     tmp = np.load(os.path.join(feature_path, 'pnn_tpc_cnn_feature.npz'), allow_pickle=True)
@@ -33,15 +32,14 @@ def pointnn(SNahts,tree,xml_path):
             cname = str(names[idx])
             if idx == query_id:
                 print(cname + ' query pcd! ' + str(idx) + ':' + str(similarity[idx]))
-                # 读取pcd文件
                 # pcd = o3d.io.read_point_cloud(cname)
-                # 可视化点云
                 # o3d.visualization.draw_geometries_with_editing([pcd], window_name="Open3D", width=800, height=600)
             else:
                 if similarity[idx] < 0.95:
                     continue
                 similar_list.append(name_id_dict[cname.split('/')[-1].split('.')[0]])
-                print(similar_list)
+        if query_name.split('/')[-1].split('.')[0] not in name_id_dict:
+            continue
         retrieved_map[name_id_dict[query_name.split('/')[-1].split('.')[0]]]=similar_list
 
 

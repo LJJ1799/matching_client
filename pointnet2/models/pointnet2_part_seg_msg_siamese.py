@@ -20,37 +20,57 @@ class get_model(nn.Module):
         self.fully_connect1 = nn.Linear(1024, 512)
         self.fully_connect2 = nn.Linear(512, 1)
 
-    def forward(self, in1,in2):
+    def forward(self, in1, in2):
         # Set Abstraction layers
-        
+
         l0_points = in1
         l0_xyz = in1
         l1_xyz, l1_points = self.sa1(l0_xyz, l0_points)
         l2_xyz, l2_points = self.sa2(l1_xyz, l1_points)
         l3_xyz, l3_points = self.sa3(l2_xyz, l2_points)
-        
-        
-        x_list = []
-        for i in range(1,len(in2)):
-            tic=time.time()
-            point2=torch.unsqueeze(in2[i],dim=0)
-            l0_points2 = point2
-            l0_xyz2 = point2
-            l1_xyz2, l1_points2 = self.sa1(l0_xyz2, l0_points2)
-            l2_xyz2, l2_points2 = self.sa2(l1_xyz2, l1_points2)
-            l3_xyz2, l3_points2 = self.sa3(l2_xyz2, l2_points2)
 
+        l0_points2 = in2
+        l0_xyz2 = in2
+        l1_xyz2, l1_points2 = self.sa1(l0_xyz2, l0_points2)
+        l2_xyz2, l2_points2 = self.sa2(l1_xyz2, l1_points2)
+        l3_xyz2, l3_points2 = self.sa3(l2_xyz2, l2_points2)
 
+        x = torch.abs(l3_points - l3_points2)
+        # x = torch.cat([l3_points,l3_points2],dim=1)
+        x = x.view(1, -1)
+        x = self.fully_connect1(x)
+        x = self.fully_connect2(x)
+        return x
 
-            x = torch.abs(l3_points - l3_points2)
-            # x = torch.cat([l3_points,point2],dim=1)
-            x = x.view(1,-1)
-            x = self.fully_connect1(x)
-            x = self.fully_connect2(x)
-            toc=time.time()
-            print('one calculation time:',toc-tic)
-            x_list.append(x)
-        return x_list
+    # def forward(self, in1,in2):
+    #     # Set Abstraction layers
+    #
+    #     l0_points = in1
+    #     l0_xyz = in1
+    #     l1_xyz, l1_points = self.sa1(l0_xyz, l0_points)
+    #     l2_xyz, l2_points = self.sa2(l1_xyz, l1_points)
+    #     l3_xyz, l3_points = self.sa3(l2_xyz, l2_points)
+    #
+    #
+        # x_list = []
+        # for i in range(1,len(in2)):
+        #     tic=time.time()
+        #     point2=torch.unsqueeze(in2[i],dim=0)
+        #     l0_points2 = point2
+        #     l0_xyz2 = point2
+        #     l1_xyz2, l1_points2 = self.sa1(l0_xyz2, l0_points2)
+        #     l2_xyz2, l2_points2 = self.sa2(l1_xyz2, l1_points2)
+        #     l3_xyz2, l3_points2 = self.sa3(l2_xyz2, l2_points2)
+        #
+        #
+        #
+        #     x = torch.abs(l3_points - l3_points2)
+        #     # x = torch.cat([l3_points,point2],dim=1)
+        #     x = x.view(1,-1)
+        #     x = self.fully_connect1(x)
+        #     x = self.fully_connect2(x)
+        #     x_list.append(x)
+        # return x_list
 
 class get_loss(nn.Module):
     def __init__(self):

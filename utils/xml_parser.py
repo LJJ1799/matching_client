@@ -63,7 +63,8 @@ def parse_frame_dump(xml_file, safe_parsing= True):
                     else: 
                         EA3 = float(Ext_Achswerte.get('EA3'))
                 weld_frames.append({'position': np.array([X, Y, Z]), 'norm': Norm, 'rot': np.array([Rot_X, Rot_Y, Rot_Z]), 'EA': EA3})
-
+                snaht_number.append(i)
+                snaht_id.append(SNaht.get('ID'))
         # desired model output
         for Frames in SNaht.findall('Frames'):  
             for Frame in Frames.findall('Frame'):
@@ -93,8 +94,6 @@ def parse_frame_dump(xml_file, safe_parsing= True):
                 #print(torch_frame) 
                 pose_frames.append(torch_frame)
                 starting_lines.append(start_line)
-                snaht_number.append(i)
-                snaht_id.append(SNaht.get('ID'))
 
         if safe_parsing and len(weld_frames) != len(pose_frames) and len(pose_frames) != 0: # For inference, there are not pose_frames, and in other cases a different amount of entries signals bad data
             bad_data_counter +=1
@@ -158,8 +157,8 @@ def list2array(total_info, safe_parsing= True):
                 weld_info.append(info['pose_frames'][i][1][2])
                 weld_info.append(info['pose_frames'][i][2][2])
                 weld_info.append(info['pose_frames_starting_lines'][i])
-                weld_info.append(info['snaht_number'][i])
-                weld_info.append(info['snaht_id'][i])
+            weld_info.append(info['snaht_number'][i])
+            weld_info.append(info['snaht_id'][i])
 
             res.append(np.asarray(weld_info))
     return np.asarray(res)

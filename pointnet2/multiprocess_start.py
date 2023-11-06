@@ -2,7 +2,7 @@ import os
 import subprocess
 import open3d as o3d
 import numpy as np
-from data_utils.tools_dataset import pc_normalize,farthest_point_sampling
+from main.tools import pc_normalize,farthest_point_sampling
 
 def process_pc(query_pcdir,pcs):
     

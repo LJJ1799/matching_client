@@ -63,7 +63,7 @@ def farthest_point_sampling(points, num_samples):
 
 
 
-def process_data(args,file_path):
+def process_data(args,file_path,slice_name_list):
     import open3d as o3d
     datas = []
     names = []
@@ -76,37 +76,42 @@ def process_data(args,file_path):
         for iii in range(len(tdatas)):
             datas.append(tdatas[iii])
             names.append(str(tnames[iii]))
+    for silce in slice_name_list:
+        tmp_name = os.path.join(file_path, silce)
 
-    for root, dirs, files in os.walk(file_path):
-        for file in files:
-            if file.endswith('pcd'):
-                tmp_name = os.path.join(root, file)
 
-                if tmp_name in names:
-                    continue
+    # for root, dirs, files in os.walk():
+    #     for file in files:
+    #         if file.endswith('pcd'):
+    #             tmp_name = os.path.join(root, file)
 
-                pcd = o3d.io.read_point_cloud(tmp_name)  # 路径需要根据实际情况设置
-                input = np.asarray(pcd.points)  # A已经变成n*3的矩阵
+        if tmp_name in names:
+            continue
 
-                lens = len(input)
+        pcd = o3d.io.read_point_cloud(tmp_name)  # 路径需要根据实际情况设置
+        input = np.asarray(pcd.points)  # A已经变成n*3的矩阵
 
-                if lens < args.input_num:
-                    ratio = int(args.input_num / lens + 1)
-                    tmp_input = np.tile(input, (ratio, 1))
-                    input = tmp_input[:args.input_num]
+        lens = len(input)
+        if lens==0:
+            continue
 
-                if lens > args.input_num:
-                    np.random.shuffle(input)  # 每次取不一样的1024个点
-                    input = farthest_point_sampling(input, args.input_num)
+        if lens < args.input_num:
+            ratio = int(args.input_num / lens + 1)
+            tmp_input = np.tile(input, (ratio, 1))
+            input = tmp_input[:args.input_num]
 
-                datas.append(input)
-                names.append(tmp_name)
+        if lens > args.input_num:
+            np.random.shuffle(input)  # 每次取不一样的1024个点
+            input = farthest_point_sampling(input, args.input_num)
+
+        datas.append(input)
+        names.append(tmp_name)
 
     np.savez(load_data_path, data=datas, name=names)
     print('data lens: ', len(datas))
     return load_data_path
 
-def save_feature(file_path):
+def save_feature(file_path,slice_name_list):
     os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
     assert torch.cuda.is_available(), "Please ensure codes are executed in cuda."
     device = 'cuda'
@@ -143,7 +148,6 @@ def save_feature(file_path):
 
     def printf(str):
         screen_logger.info(str)
-        print(str)
 
     # Model
     printf(f"args: {args}")
@@ -169,7 +173,7 @@ def save_feature(file_path):
     features = []
     mynames = []
     with torch.no_grad():
-        load_data_path=process_data(args,file_path)
+        load_data_path=process_data(args,file_path,slice_name_list)
         path = os.path.join(file_path,'pc_{}pts.npz'.format(args.input_num))
         datas = np.load(path,allow_pickle=True)['data']
         names = np.load(path,allow_pickle=True)['name']

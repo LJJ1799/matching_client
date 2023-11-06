@@ -2,24 +2,13 @@
 Author: Benny
 Date: Nov 2019
 """
-import os
 # os.environ["CUDA_VISIBLE_DEVICES"] = "6"
 import argparse
-import torch
 import torch.nn as nn
-import datetime
-import logging
 import sys
 import importlib
-import shutil
-import provider
-import numpy as np
 
-from pathlib import Path
-from tqdm import tqdm
-from data_utils.tools_dataset import *
-from extensions.chamfer_dist import ChamferFunction,ChamferDistanceL2
-from extensions.emd.emd import earth_mover_distance
+from main.tools import *
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = BASE_DIR

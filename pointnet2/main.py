@@ -7,8 +7,10 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import argparse
 import torch.nn as nn
 import sys
+import torch
 import importlib
-from pointnet2.data_utils.tools_dataset import *
+import open3d as o3d
+from pointnet2.tools import *
 import time
 import numpy as np
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -81,7 +83,7 @@ def process_pc(file_path,pcs):
 
 
 
-def pointnet2(file_path,SNahts,tree,xml_path):
+def pointnet2(file_path,SNahts,tree,xml_path,slice_name_list):
     args = parse_args()
 
     '''MODEL LOADING'''
@@ -102,8 +104,7 @@ def pointnet2(file_path,SNahts,tree,xml_path):
         Name = Snaht.attrib.get('Name')
         ID = Snaht.attrib.get('ID')
         name_id[Name] = ID
-    print(name_id)
-    pc_list = os.listdir(file_path)
+    pc_list = slice_name_list
     all_datas, all_names = process_pc(file_path, pc_list)
     retrieved_map = {}
     # query_pcs = ['PgmDef_260_0.pcd']
@@ -133,7 +134,6 @@ def pointnet2(file_path,SNahts,tree,xml_path):
                 score = sig(pc_sim[i])
                 all_sim.append(score.item())
             toc=time.time()
-            print('DL processing time:',toc-tic)
             st = np.argsort(all_sim)[::-1]
             for s in st:
                 if all_sim[s]<0.95:
@@ -142,28 +142,26 @@ def pointnet2(file_path,SNahts,tree,xml_path):
                     continue
                 similar_list.append(name_id[all_names[s].split('.')[0]])
                 string = '点云: ' + all_names[s] + ', 相似度: {}'.format(all_sim[s])
-                print(string)
-                print('similar_list',similar_list)
             retrieved_map[name_id[pc_1.split('.')[0]]]=similar_list
         print('retrieved_map',retrieved_map)
-        for SNaht in SNahts:
-            attr_dict={}
-            for key, value in SNaht.attrib.items():
-                if key == 'ID':
-                    if value in retrieved_map:
-                        print(retrieved_map[value])
-                        attr_dict[key] = value
-                        attr_dict['Naht_ID'] = ','.join(retrieved_map[value])
-                    else:
-                        continue
-                elif key == 'Naht_ID':
-                    continue
-                else:
-                    attr_dict[key] = value
-            SNaht.attrib.clear()
-            for key, value in attr_dict.items():
-                SNaht.set(key, value)
-        tree.write(xml_path)
+        # for SNaht in SNahts:
+        #     attr_dict={}
+        #     for key, value in SNaht.attrib.items():
+        #         if key == 'ID':
+        #             if value in retrieved_map:
+        #                 print(retrieved_map[value])
+        #                 attr_dict[key] = value
+        #                 attr_dict['Naht_ID'] = ','.join(retrieved_map[value])
+        #             else:
+        #                 continue
+        #         elif key == 'Naht_ID':
+        #             continue
+        #         else:
+        #             attr_dict[key] = value
+        #     SNaht.attrib.clear()
+        #     for key, value in attr_dict.items():
+        #         SNaht.set(key, value)
+        # tree.write(xml_path)
     return retrieved_map
 if __name__ == '__main__':
     pointnet2()
