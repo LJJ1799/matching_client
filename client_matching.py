@@ -63,17 +63,21 @@ def matching(data_folder,xml_file,model,dienst_number,save_image=False,auto_del=
 
     elif model == 'pointnet2':
         print('run pointnet2')
-        if dienst_number==1:
-            os.system('python pointnet2/train_siamese_fortools.py --file_path data2/Reisch')
+        if dienst_number==60:
+            os.system('python pointnet2/train_siamese_fortools.py --file_path data/Reisch')
+            print("pointnet2 training finished")
             return
-        retrieved_map=pointnet2(wz_path,SNahts,tree,xml_path,slice_name_list)
+        elif dienst_number==61:
+            retrieved_map=pointnet2(wz_path,SNahts,tree,xml_path,slice_name_list)
 
     elif model == 'pointnext':
         print('run pointnext')
-        if dienst_number==1:
-            os.system('python pointnext/classification/main.py --file_path data2/Reisch')
+        if dienst_number==60:
+            os.system('python pointnext/classification/main.py --file_path data/Reisch')
+            print("pointnext training finished")
             return
-        retrieved_map,retrieved_map_name=pointnext(wz_path,SNahts,tree,xml_path,slice_name_list)
+        elif dienst_number==61:
+            retrieved_map,retrieved_map_name=pointnext(wz_path,SNahts,tree,xml_path,slice_name_list)
     print('retrieved_map_name',retrieved_map_name)
 
     if save_image:
@@ -126,8 +130,8 @@ def matching(data_folder,xml_file,model,dienst_number,save_image=False,auto_del=
 if __name__ == "__main__":
 
     data_folder=os.path.join(ROOT,'data')
-    xml='Aehn3TestJob1.xml'
-    model='pointnext'
+    xml='Reisch.xml'
+    model='pointnet2'
     dienst_number=0## 1 training_similarity;2 predict torch pose; 3 training LUT
     matching(data_folder, xml, model,dienst_number,save_image=False,auto_del=False)
 

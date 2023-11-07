@@ -76,14 +76,13 @@ if __name__ == "__main__":
     xml_dir=config.get('config','xml_dir')
     auto_del=config.get('config','auto_del')
     model = config.get('config','model')
-
     con_socket = connect_moses_socket(host, port)
-    send_moses_message(con_socket,"Pierce_CSL", "MOSES_Cl1", 123, 0, 'Verbunden')
-
+    print(host,port)
+    send_moses_message(con_socket,"Pierce_CSL", "MOSES_Cl1", 123, 60, 'Verbunden')
+    print(host,port)
     # listener = threading.Thread(target = receive_moses_message, args=(con_socket,))
     # listener.daemon = True
     # listener.start()
-
     while True:
         sender,target,task_number,service_number,data=receive_moses_message(con_socket)
         # inp = input("Enter server name,client name,task number,service number, data separated only by a comma (no spaces):\n")
@@ -100,12 +99,12 @@ if __name__ == "__main__":
         # # some cleanup of the response to make it more human readable
         # # the enconding for the decode() method may throw errors in some cases, latin-1 seems to work though
         #
-        if service_number in [0,1]:
+        if service_number in [60,61,62,63]:
             send_moses_message(con_socket,sender,target,123,task_number,'Suche nach ähnlichen Schweißpositionen gestartet')
             matching(os.path.join(ROOT,xml_dir),data.rstrip(),model,service_number,auto_del=auto_del)
             send_moses_message(con_socket,target,sender,123,task_number,'Fertig')
         else:
-            send_moses_message(con_socket,target,sender,123,task_number,'Bitte Dienst Nummer 0 order 1 eingeben')
+            send_moses_message(con_socket,target,sender,123,task_number,'Bitte Dienst Nummer 60 bis 63 eingeben')
             # if len(result)==1:
             #     send_moses_message(con_socket,target,sender,123,task_number,'Keine ähnliche Schweißpositionen gefunden')
             # else:
