@@ -139,26 +139,26 @@ def pointnext(file_path,SNahts,tree,xml_path,slice_name_list):
             retrieved_map_name[query_pc.split('.')[0]]=similar_list_name
             # print(query_pc+' finished!')
 
-        # for SNaht in SNahts:
-        #     attr_dict={}
-        #     for key, value in SNaht.attrib.items():
-        #         if key == 'ID':
-        #             if value in retrieved_map_id:
-        #                 # print(retrieved_map_id[value])
-        #                 attr_dict[key] = value
-        #                 attr_dict['Naht_ID'] = ','.join(retrieved_map_id[value])
-        #             else:
-        #                 continue
-        #         elif key == 'Naht_ID':
-        #             continue
-        #         else:
-        #             attr_dict[key] = value
-        #     SNaht.attrib.clear()
-        #     for key, value in attr_dict.items():
-        #         SNaht.set(key, value)
-        # tree.write(xml_path)
-        # if os.path.exists('./log'):
-        #     shutil.rmtree('./log')
+        for SNaht in SNahts:
+            attr_dict={}
+            for key, value in SNaht.attrib.items():
+                if key == 'ID':
+                    if value in retrieved_map_id:
+                        # print(retrieved_map_id[value])
+                        attr_dict[key] = value
+                        attr_dict['Naht_ID'] = ','.join(retrieved_map_id[value])
+                    else:
+                        continue
+                elif key == 'Naht_ID':
+                    continue
+                else:
+                    attr_dict[key] = value
+            SNaht.attrib.clear()
+            for key, value in attr_dict.items():
+                SNaht.set(key, value)
+        tree.write(xml_path)
+        if os.path.exists('./log'):
+            shutil.rmtree('./log')
 
     return retrieved_map_id,retrieved_map_name
 

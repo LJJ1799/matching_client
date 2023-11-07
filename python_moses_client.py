@@ -100,10 +100,12 @@ if __name__ == "__main__":
         # # some cleanup of the response to make it more human readable
         # # the enconding for the decode() method may throw errors in some cases, latin-1 seems to work though
         #
-        if service_number==63:
+        if service_number in [0,1]:
             send_moses_message(con_socket,sender,target,123,task_number,'Suche nach ähnlichen Schweißpositionen gestartet')
-            matching(os.path.join(ROOT,xml_dir),data.rstrip(),model,auto_del=auto_del)
+            matching(os.path.join(ROOT,xml_dir),data.rstrip(),model,service_number,auto_del=auto_del)
             send_moses_message(con_socket,target,sender,123,task_number,'Fertig')
+        else:
+            send_moses_message(con_socket,target,sender,123,task_number,'Bitte Dienst Nummer 0 order 1 eingeben')
             # if len(result)==1:
             #     send_moses_message(con_socket,target,sender,123,task_number,'Keine ähnliche Schweißpositionen gefunden')
             # else:

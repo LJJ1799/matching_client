@@ -15,7 +15,7 @@ import torch
 
 from pathlib import Path
 # from pointnet2.tools import *
-from openpoints.dataset.mydataset.tools_dataset import ToolsDataset
+
 # from extensions.chamfer_dist import ChamferFunction,ChamferDistanceL2
 # from extensions.emd.emd import earth_mover_distance
 
@@ -24,8 +24,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = BASE_DIR
 ROOT = os.path.dirname(ROOT_DIR)
 sys.path.append(os.path.join(ROOT_DIR, 'models'))
-
-
+sys.path.append(ROOT)
+from openpoints.dataset.mydataset.tools_dataset import ToolsDataset
 def inplace_relu(m):
     classname = m.__class__.__name__
     if classname.find('ReLU') != -1:
@@ -97,9 +97,9 @@ def main(args):
 
     TRAIN_DATASET = ToolsDataset(args)
     trainDataLoader = torch.utils.data.DataLoader(TRAIN_DATASET, batch_size=1, shuffle=True, num_workers=8, drop_last=True)
-    
+
     log_string("The number of training data is: %d" % len(TRAIN_DATASET))
-   
+
 
     '''MODEL LOADING'''
     MODEL = importlib.import_module(args.model)
@@ -182,14 +182,14 @@ def main(args):
             input2 = input2.float().cuda()
             input2 = input2.transpose(2, 1)
             label = label.view(1,1).float().cuda()
-            pc_sim = siamese_model(input1,input2)
+            pc_sim = siamese_model(input1,input2,training=True)
             loss = criterion(pc_sim, label)
             loss.backward()
             optimizer.step()
-            
+
             logger.info('epoch {}/{}, batch {}/{}, 样本对种类:{}, loss: {:.10f}'.format(epoch,args.epoch,i,len(trainDataLoader),msg[0],loss.item()))
             print('epoch {}/{}, batch {}/{}, 样本对种类:{}, loss: {:.10f}'.format(epoch,args.epoch,i,len(trainDataLoader),msg[0],loss.item()))
-     
+
         if (epoch%5 == 0):
             logger.info('Save model...')
             savepath = os.path.join(checkpoints_dir,'model_{}.pth'.format(epoch))#str(checkpoints_dir) + 'model_{}.pth'.format(epoch)
@@ -201,9 +201,9 @@ def main(args):
             }
             torch.save(state, savepath)
             log_string('Saving model....')
-            
-            
-        
+
+
+
 
 if __name__ == '__main__':
     args = parse_args()

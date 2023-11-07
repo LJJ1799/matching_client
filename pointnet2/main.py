@@ -129,7 +129,7 @@ def pointnet2(file_path,SNahts,tree,xml_path,slice_name_list):
                 compare_data = compare_data.float().cuda()
                 compare_data = compare_data.transpose(2, 1)
                 cat_data=torch.cat([cat_data,compare_data],0)
-            pc_sim = siamese_model(query_data, cat_data)
+            pc_sim = siamese_model(query_data, cat_data,training=False)
             for i in range(len(pc_sim)):
                 score = sig(pc_sim[i])
                 all_sim.append(score.item())
@@ -144,24 +144,24 @@ def pointnet2(file_path,SNahts,tree,xml_path,slice_name_list):
                 string = '点云: ' + all_names[s] + ', 相似度: {}'.format(all_sim[s])
             retrieved_map[name_id[pc_1.split('.')[0]]]=similar_list
         print('retrieved_map',retrieved_map)
-        # for SNaht in SNahts:
-        #     attr_dict={}
-        #     for key, value in SNaht.attrib.items():
-        #         if key == 'ID':
-        #             if value in retrieved_map:
-        #                 print(retrieved_map[value])
-        #                 attr_dict[key] = value
-        #                 attr_dict['Naht_ID'] = ','.join(retrieved_map[value])
-        #             else:
-        #                 continue
-        #         elif key == 'Naht_ID':
-        #             continue
-        #         else:
-        #             attr_dict[key] = value
-        #     SNaht.attrib.clear()
-        #     for key, value in attr_dict.items():
-        #         SNaht.set(key, value)
-        # tree.write(xml_path)
+        for SNaht in SNahts:
+            attr_dict={}
+            for key, value in SNaht.attrib.items():
+                if key == 'ID':
+                    if value in retrieved_map:
+                        print(retrieved_map[value])
+                        attr_dict[key] = value
+                        attr_dict['Naht_ID'] = ','.join(retrieved_map[value])
+                    else:
+                        continue
+                elif key == 'Naht_ID':
+                    continue
+                else:
+                    attr_dict[key] = value
+            SNaht.attrib.clear()
+            for key, value in attr_dict.items():
+                SNaht.set(key, value)
+        tree.write(xml_path)
     return retrieved_map
 if __name__ == '__main__':
     pointnet2()

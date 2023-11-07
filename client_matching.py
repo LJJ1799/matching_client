@@ -1,5 +1,4 @@
 import xml.etree.ElementTree as ET
-import json
 # import open3d.core as o3c
 from pointnn.save_pn_feature import save_feature
 from pointnn.cossim import pointnn
@@ -7,13 +6,11 @@ from pointnet2.main import pointnet2
 from pointnext.main import pointnext
 from ICP_RMSE import ICP
 import os.path
-from util import npy2pcd
 from tools import get_ground_truth,get_weld_info,WeldScene
 from evaluation import mean_metric
 import open3d as o3d
 import numpy as np
 import time
-import torch
 import shutil
 from create_pc import split,convert
 
@@ -78,6 +75,7 @@ def matching(data_folder,xml_file,model,dienst_number,save_image=False,auto_del=
             return
         retrieved_map,retrieved_map_name=pointnext(wz_path,SNahts,tree,xml_path,slice_name_list)
     print('retrieved_map_name',retrieved_map_name)
+
     if save_image:
         result_image_dir=os.path.join(ROOT,'result_image')
         os.makedirs(result_image_dir,exist_ok=True)
@@ -126,31 +124,10 @@ def matching(data_folder,xml_file,model,dienst_number,save_image=False,auto_del=
     return
 
 if __name__ == "__main__":
-    # model='icp'
-    # data_folder=os.path.join(ROOT,'data/23-09-29_Wände')
-    # xml_list=os.listdir(data_folder)
-    # for xml in xml_list:
-    #     if xml.endswith('xml'):
-    #         print(xml)
-    #         matching(data_folder,xml, model)
 
     data_folder=os.path.join(ROOT,'data')
     xml='Aehn3TestJob1.xml'
-    model='pointnet2'
-    dienst_number=1## 1 training_similarity;2 predict torch pose; 3 training LUT
-    matching(data_folder, xml, model,dienst_number,save_image=False)
+    model='pointnext'
+    dienst_number=0## 1 training_similarity;2 predict torch pose; 3 training LUT
+    matching(data_folder, xml, model,dienst_number,save_image=False,auto_del=False)
 
-    # models=['icp','pointnn','pointnet2','pointnext']
-    # for model in models
-    # pc_list = os.listdir(os.path.join(ROOT, 'data2'))
-    # model = 'pointnn'
-    # xml_list=os.listdir(os.path.join(ROOT,'dataset'))
-    # for file in xml_list:
-    # for folder in pc_list:
-    #     xml_file=os.path.join(ROOT,'xml_folder',folder+'.xml')
-    #     GT=matching(os.path.join(ROOT, 'data2', xml_file), model)
-    # with open('GT.json', 'w') as f:
-    #     json.dump(GT, f, indent=4)
-    #     if file.split('.')[-1]=='xml' and os.path.exists(os.path.join(ROOT,'dataset',file.split('.')[0]))==False:
-    #         print(file)
-    #         matching(os.path.join(ROOT,'dataset',file),model)
