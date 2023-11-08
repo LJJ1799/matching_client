@@ -13,7 +13,7 @@ CURRENT_PATH = os.path.abspath(__file__)
 BASE_1 = os.path.dirname(CURRENT_PATH)
 ROOT = os.path.dirname(BASE_1)
 
-bs = 1 # 只支持1
+bs = 1
 checkpoint_dir = os.path.join(BASE_1,'sim_checkpoint/model_50.pth')
 
 parser = argparse.ArgumentParser('S3DIS scene segmentation training')
@@ -94,7 +94,6 @@ def pointnext(file_path,SNahts,tree,xml_path,slice_name_list):
     all_datas, all_names = process_pc(file_path, pc_list)
     retrieved_map_id = {}
     retrieved_map_name = {}
-    query_pcs = ['AutoDetect_25_26.pcd']
     tic = time.time()
 
     with torch.no_grad():
@@ -133,8 +132,9 @@ def pointnext(file_path,SNahts,tree,xml_path,slice_name_list):
                     continue
                 similar_list.append(name_id[all_names[s].split('.')[0]])
                 similar_list_name.append(all_names[s].split('.')[0])
-                string = '点云: '+all_names[s]+', 相似度: {}'.format(all_sim[s])
+                string = 'slices: '+all_names[s]+', similarity: {}'.format(all_sim[s])
                 # print(string)
+            print('query slices:{}'.format(query_pc.split('.')[0])+', similarity: {}'.format(similar_list))
             retrieved_map_id[name_id[query_pc.split('.')[0]]] = similar_list
             retrieved_map_name[query_pc.split('.')[0]]=similar_list_name
             # print(query_pc+' finished!')
@@ -170,8 +170,8 @@ def process_pc(query_pcdir,pcs):
     for pc in pcs:
         if pc.endswith('pcd'):
             tmp_name = os.path.join(query_pcdir,pc)
-            pcd=o3d.io.read_point_cloud(tmp_name)#路径需要根据实际情况设置
-            input=np.asarray(pcd.points)#A已经变成n*3的矩阵
+            pcd=o3d.io.read_point_cloud(tmp_name)
+            input=np.asarray(pcd.points)
             
             lens = len(input)
             if lens==0:
@@ -182,7 +182,6 @@ def process_pc(query_pcdir,pcs):
                 input = tmp_input[:2048 ]
             
             if lens > 2048 :
-                # np.random.shuffle(input) # 每次取不一样的1024个点
                 input = farthest_point_sampling(input,2048)
                 
             input = pc_normalize(input)

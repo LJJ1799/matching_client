@@ -88,7 +88,7 @@ def train_one_epoch(model, train_loader, optimizer, scheduler, epoch,endepochs, 
         pc_sim = model(input1,input2)
         loss = criterion(pc_sim, label)
         loss.backward()
-        print('epoch {}/{}, batch {}/{}, 样本对种类:{}, loss: {:.10f}'.format(epoch,endepochs,num_iter,len(train_loader),msg[0],loss.item()))
+        print('epoch {}/{}, batch {}/{}, kind of sample pairs:{}, loss: {:.10f}'.format(epoch,endepochs,num_iter,len(train_loader),msg[0],loss.item()))
         # optimize
         if num_iter == cfg.step_per_update:
             if cfg.get('grad_norm_clip') is not None and cfg.grad_norm_clip > 0.:

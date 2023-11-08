@@ -88,7 +88,6 @@ def main(args):
     logger.setLevel(logging.INFO)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     file_handler = logging.FileHandler('%s/%s.txt' % (log_dir, args.model.split('/')[-1]))
-    print('file_handler',file_handler)
     file_handler.setLevel(logging.INFO)
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
@@ -187,8 +186,8 @@ def main(args):
             loss.backward()
             optimizer.step()
 
-            logger.info('epoch {}/{}, batch {}/{}, 样本对种类:{}, loss: {:.10f}'.format(epoch,args.epoch,i,len(trainDataLoader),msg[0],loss.item()))
-            print('epoch {}/{}, batch {}/{}, 样本对种类:{}, loss: {:.10f}'.format(epoch,args.epoch,i,len(trainDataLoader),msg[0],loss.item()))
+            logger.info('epoch {}/{}, batch {}/{}, kind of sample pairs:{}, loss: {:.10f}'.format(epoch,args.epoch,i,len(trainDataLoader),msg[0],loss.item()))
+            # print('epoch {}/{}, batch {}/{}, 样本对种类:{}, loss: {:.10f}'.format(epoch,args.epoch,i,len(trainDataLoader),msg[0],loss.item()))
 
         if (epoch%5 == 0):
             logger.info('Save model...')

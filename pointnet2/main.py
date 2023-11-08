@@ -62,8 +62,8 @@ def process_pc(file_path,pcs):
     for pc in pcs:
         if pc.endswith('pcd'):
             tmp_name = os.path.join(file_path,pc)
-            pcd=o3d.io.read_point_cloud(tmp_name)#路径需要根据实际情况设置
-            input=np.asarray(pcd.points)#A已经变成n*3的矩阵
+            pcd=o3d.io.read_point_cloud(tmp_name)
+            input=np.asarray(pcd.points)
 
             lens = len(input)
 
@@ -73,7 +73,7 @@ def process_pc(file_path,pcs):
                 input = tmp_input[:2048 ]
 
             if lens > 2048 :
-                np.random.shuffle(input) # 每次取不一样的1024个点
+                np.random.shuffle(input)
                 input = farthest_point_sampling(input,2048)
 
             datas.append(input)
@@ -107,12 +107,14 @@ def pointnet2(file_path,SNahts,tree,xml_path,slice_name_list):
     pc_list = slice_name_list
     all_datas, all_names = process_pc(file_path, pc_list)
     retrieved_map = {}
+    retrieved_map_name = {}
     # query_pcs = ['PgmDef_260_0.pcd']
     tic = time.time()
 
     with torch.no_grad():
         for pc_1 in pc_list:
             similar_list=[]
+            similar_list_name = []
             query_id = all_names.index(pc_1)
             query_data = all_datas[query_id]
             query_data = pc_normalize(query_data)
@@ -141,15 +143,16 @@ def pointnet2(file_path,SNahts,tree,xml_path,slice_name_list):
                 if all_names[s] == pc_1:
                     continue
                 similar_list.append(name_id[all_names[s].split('.')[0]])
+                similar_list_name.append(all_names[s].split('.')[0])
                 string = '点云: ' + all_names[s] + ', 相似度: {}'.format(all_sim[s])
+            print('query slices:{}'.format(pc_1.split('.')[0]) + ', similarity: {}'.format(similar_list))
             retrieved_map[name_id[pc_1.split('.')[0]]]=similar_list
-        print('retrieved_map',retrieved_map)
+            retrieved_map_name[pc_1.split('.')[0]] = similar_list_name
         for SNaht in SNahts:
             attr_dict={}
             for key, value in SNaht.attrib.items():
                 if key == 'ID':
                     if value in retrieved_map:
-                        print(retrieved_map[value])
                         attr_dict[key] = value
                         attr_dict['Naht_ID'] = ','.join(retrieved_map[value])
                     else:
@@ -162,6 +165,6 @@ def pointnet2(file_path,SNahts,tree,xml_path,slice_name_list):
             for key, value in attr_dict.items():
                 SNaht.set(key, value)
         tree.write(xml_path)
-    return retrieved_map
+    return retrieved_map,retrieved_map_name
 if __name__ == '__main__':
     pointnet2()

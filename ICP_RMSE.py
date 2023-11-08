@@ -27,10 +27,12 @@ def get_distance(SNaht):
 
 def ICP(SNahts,wz_path,tree,xml_path):
     retrieved_map = {}
+    retrieved_map_name = {}
     for SNaht_src in SNahts:
         dict={}
         similar_str=''
         similar_list = []
+        similar_list_name = []
         src_ID = SNaht_src.attrib.get('ID')
         src_name=SNaht_src.attrib.get('Name')
         src_path=wz_path + '/' + src_name + '.pcd'
@@ -101,11 +103,13 @@ def ICP(SNahts,wz_path,tree,xml_path):
             #     continue
 
             similar_list.append(tgt_ID)
+            similar_list_name.append(tgt_name)
             if similar_str=='':
                 similar_str+=tgt_ID
             else:
                 similar_str += (','+tgt_ID)
         retrieved_map[src_ID] = similar_list
+        retrieved_map_name[src_name]=similar_list_name
         for key,value in SNaht_src.attrib.items():
             if key=='Name':
                 dict[key]=value
@@ -119,4 +123,4 @@ def ICP(SNahts,wz_path,tree,xml_path):
             SNaht_src.set(key,value)
     tree.write(xml_path)
 
-    return retrieved_map
+    return retrieved_map,retrieved_map_name

@@ -54,7 +54,7 @@ def matching(data_folder,xml_file,model,dienst_number,save_image=False,auto_del=
     methoe_time=time.time()
     if model == 'icp':
         print('run icp')
-        retrieved_map=ICP(SNahts,wz_path,tree,xml_path)
+        retrieved_map,retrieved_map_name=ICP(SNahts,wz_path,tree,xml_path)
 
     elif model == 'pointnn':
         print('run pointnn')
@@ -62,23 +62,25 @@ def matching(data_folder,xml_file,model,dienst_number,save_image=False,auto_del=
         retrieved_map=pointnn(SNahts,tree,xml_path)
 
     elif model == 'pointnet2':
-        print('run pointnet2')
         if dienst_number==60:
+            print('training pointnet2')
             os.system('python pointnet2/train_siamese_fortools.py --file_path data/Reisch')
             print("pointnet2 training finished")
             return
         elif dienst_number==61:
-            retrieved_map=pointnet2(wz_path,SNahts,tree,xml_path,slice_name_list)
+            print('run pointnet2')
+            retrieved_map,retrieved_map_name=pointnet2(wz_path,SNahts,tree,xml_path,slice_name_list)
 
     elif model == 'pointnext':
-        print('run pointnext')
         if dienst_number==60:
+            print('training pointnext')
             os.system('python pointnext/classification/main.py --file_path data/Reisch')
             print("pointnext training finished")
             return
         elif dienst_number==61:
+            print('run pointnext')
             retrieved_map,retrieved_map_name=pointnext(wz_path,SNahts,tree,xml_path,slice_name_list)
-    print('retrieved_map_name',retrieved_map_name)
+    # print('retrieved_map_name',retrieved_map_name)
 
     if save_image:
         result_image_dir=os.path.join(ROOT,'result_image')
@@ -115,8 +117,8 @@ def matching(data_folder,xml_file,model,dienst_number,save_image=False,auto_del=
                     vis.destroy_window()
                     time.sleep(0.2)
 
-    print('gt_map',gt_id_map)
-    print('retrieved_map',retrieved_map)
+    # print('gt_map',gt_id_map)
+    # print('retrieved_map',retrieved_map)
 
     metric=mean_metric(gt_id_map,retrieved_map)
     print('metric',metric)
