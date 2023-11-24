@@ -156,11 +156,11 @@ def pointnext(file_path,SNahts,tree,xml_path,slice_name_list):
             SNaht.attrib.clear()
             for key, value in attr_dict.items():
                 SNaht.set(key, value)
-        tree.write(xml_path)
+        # tree.write(xml_path)
         if os.path.exists('./log'):
             shutil.rmtree('./log')
 
-    return retrieved_map_id,retrieved_map_name
+    return retrieved_map_id,retrieved_map_name,tree
 
 
 def process_pc(query_pcdir,pcs):

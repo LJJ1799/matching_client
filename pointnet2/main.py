@@ -164,7 +164,7 @@ def pointnet2(file_path,SNahts,tree,xml_path,slice_name_list):
             SNaht.attrib.clear()
             for key, value in attr_dict.items():
                 SNaht.set(key, value)
-        tree.write(xml_path)
-    return retrieved_map,retrieved_map_name
+        # tree.write(xml_path)
+    return retrieved_map,retrieved_map_name,tree
 if __name__ == '__main__':
     pointnet2()

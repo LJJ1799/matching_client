@@ -121,6 +121,6 @@ def ICP(SNahts,wz_path,tree,xml_path):
         SNaht_src.attrib.clear()
         for key,value in dict.items():
             SNaht_src.set(key,value)
-    tree.write(xml_path)
+    # tree.write(xml_path)
 
-    return retrieved_map,retrieved_map_name
+    return retrieved_map,retrieved_map_name,tree
