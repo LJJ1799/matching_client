@@ -7,6 +7,7 @@ from pointnn.cossim import pointnn
 from pointnet2.main import pointnet2
 from pointnext.main import pointnext
 from ICP_RMSE import ICP
+from poseE.main import poseestimation
 from PoseEstimation.train import TrainPointNet2
 from PoseEstimation.test import PoseLookup
 import os.path
@@ -29,66 +30,54 @@ ROOT = os.path.dirname(CURRENT_PATH)
 def matching(data_folder,xml_file,model,dienst_number,save_image=False,auto_del=False):
     start_time=time.time()
     xml_path=os.path.join(ROOT,data_folder,xml_file)
+    data_path = data_folder
+    # if model == 'POSE':
+    #     # split_models('data3', 'data3/train/models','data3/test/models')
+    #     # pfe = PFE(path_models=os.path.join(ROOT, 'data3', 'train', 'models'),
+    #     #           path_split=os.path.join(ROOT, 'data3', 'train', 'split'),
+    #     #           path_label_temp=os.path.join(ROOT, 'data3', 'train', 'label_temp_folder'),
+    #     #           path_classes=os.path.join(ROOT, 'data3', 'train', 'parts_classification'),
+    #     #           parallel=True,
+    #     #           n_clusters=8,
+    #     #           )
+    #     # clustering(pfe)
+    #     # lut = LookupTable(path_data=data_path, label='HFD',
+    #     #                   hfd_path_classes=os.path.join(data_path, 'train/parts_classification'),
+    #     #                   pcl_density=40, crop_size=400, num_points=2048, \
+    #     #                   skip_sampling=False,
+    #     #                   skip_slicing=False, fast_sampling=True,
+    #     #                   decrease_lib=False)
+    #     # lut.make(2)
+    #     # tr=TrainPointNet2(path_data=data_path)
+    #     # tr.make_dataset(crop_size=255,num_points=2048)
+    #     te=PoseLookup(path_data=data_path)
+    #     # te.processing(path_test=str(data_path)+'/test/models/')
+    #     # tr.train()
+    #     te.inference(model_path='./data3/seg_model/model1.ckpt',test_input='./data3/test/welding_zone_test')
+    # else:
     tree = ET.parse(xml_path)
     root = tree.getroot()
     SNahts = root.findall("SNaht")
-    Baugruppe=root.attrib['Baugruppe']
-    data_path = data_folder
-    wz_path = os.path.join(data_path,Baugruppe)
-    xml_output_path=os.path.join(ROOT,'output')
-    os.makedirs(xml_output_path,exist_ok=True)
-    if model == 'POSE':
-        # split_models('data3', 'data3/train/models','data3/test/models')
-        # pfe = PFE(path_models=os.path.join(ROOT, 'data3', 'train', 'models'),
-        #           path_split=os.path.join(ROOT, 'data3', 'train', 'split'),
-        #           path_label_temp=os.path.join(ROOT, 'data3', 'train', 'label_temp_folder'),
-        #           path_classes=os.path.join(ROOT, 'data3', 'train', 'parts_classification'),
-        #           parallel=True,
-        #           n_clusters=8,
-        #           )
-        # clustering(pfe)
-        # lut = LookupTable(path_data=data_path, label='HFD',
-        #                   hfd_path_classes=os.path.join(data_path, 'train/parts_classification'),
-        #                   pcl_density=40, crop_size=400, num_points=2048, \
-        #                   skip_sampling=False,
-        #                   skip_slicing=False, fast_sampling=True,
-        #                   decrease_lib=False)
-        # lut.make(2)
-        # tr=TrainPointNet2(path_data=data_path)
-        # tr.make_dataset(crop_size=255,num_points=2048)
-        te=PoseLookup(path_data=data_path)
-        te.processing(path_test=os.path.join(data_path,))
-        # if not os.path.exists(os.path.join(data_path, Baugruppe)):
-        #     pfe = PFE(path_models=data_path,
-        #               path_split=os.path.join(data_path, 'split'),
-        #               path_label_temp=os.path.join(data_path, 'label_temp_folder'),
-        #               path_classes=os.path.join(data_path, 'parts_classification'),
-        #               parallel=False,
-        #               n_clusters=2,
-        #               )
-        #     main(pfe)
-        #     lut = LookupTable(path_data=data_path, label='HFD',
-        #                       hfd_path_classes=os.path.join(data_path, 'parts_classification'),
-        #                       pcl_density=40, crop_size=400, num_points=2048, \
-        #                       skip_sampling=False,
-        #                       skip_slicing=False, fast_sampling=True,
-        #                       decrease_lib=False)
-        #     lut.make(2)
-    else:
-        if not os.path.exists(os.path.join(data_path,Baugruppe+'.pcd')):
-            split(data_path,Baugruppe)
-            convert(data_path,40,Baugruppe)
+    Baugruppe = root.attrib['Baugruppe']
+    wz_path = os.path.join(data_path, Baugruppe)
+    xml_output_path = os.path.join(ROOT, 'output')
+    weld_infos=get_weld_info(xml_path)
+    gt_id_map,gt_name_map=get_ground_truth(weld_infos)
+    weld_infos=np.vstack(weld_infos)
+    os.makedirs(xml_output_path, exist_ok=True)
+
+    if not os.path.exists(os.path.join(data_path,Baugruppe+'.pcd')):
+        split(data_path,Baugruppe)
+        convert(data_path,40,Baugruppe)
 
         inter_time=time.time()
         print('creating pointcloud time',inter_time-start_time)
         os.makedirs(wz_path,exist_ok=True)
         ws = WeldScene(os.path.join(data_path,Baugruppe+'.pcd'))
-        weld_infos=get_weld_info(xml_path)
-        gt_id_map,gt_name_map=get_ground_truth(weld_infos)
-        weld_infos=np.vstack(weld_infos)
         slice_name_list=[]
         for SNaht in SNahts:
             slice_name = SNaht.attrib['Name']
+            print(slice_name)
             # if os.path.exists(os.path.join(wz_path,slice_name+'.pcd'))==False:
             weld_info=weld_infos[weld_infos[:,0]==slice_name][:,3:].astype(float)
             if len(weld_info)==0:
@@ -98,6 +87,11 @@ def matching(data_folder,xml_file,model,dienst_number,save_image=False,auto_del=
             pc = o3d.geometry.PointCloud()
             pc.points = o3d.utility.Vector3dVector(cxy)
             o3d.io.write_point_cloud(os.path.join(wz_path, slice_name + '.pcd'), pointcloud=pc, write_ascii=True)
+
+    if model == 'POSE':
+        print('POSE ESTIMATION')
+        poseestimation(wz_path,xml_path)
+    else:
         retrieved_map={}
         methoe_time=time.time()
         if model == 'icp':
@@ -148,8 +142,8 @@ def matching(data_folder,xml_file,model,dienst_number,save_image=False,auto_del=
 if __name__ == "__main__":
 
     data_folder=os.path.join(ROOT,'data')
-    xml='Reisch_2.xml'
-    model='pointnext'
+    xml='Reisch.xml'
+    model='POSE'
     dienst_number=61## 1 training_similarity;2 predict torch pose; 3 training LUT
     matching(data_folder, xml, model,dienst_number,save_image=False,auto_del=False)
 
