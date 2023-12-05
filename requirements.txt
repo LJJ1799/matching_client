@@ -23,6 +23,7 @@ Cython==0.29.28
 pandas
 deepspeed
 shortuuid
+networkx
 
 # for docs
 mkdocs-material

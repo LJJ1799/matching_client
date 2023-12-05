@@ -5,7 +5,45 @@ import os.path
 import open3d as o3d
 import numpy as np
 import copy
+import time
 from openpoints.dataset.mydataset.tools_dataset import pc_normalize,farthest_point_sampling
+
+CURRENT_PATH = os.path.abspath(__file__)
+ROOT = os.path.dirname(CURRENT_PATH)
+def image_save(retrieved_map_name,wz_path):
+    result_image_dir = os.path.join(ROOT, 'result_image')
+    os.makedirs(result_image_dir, exist_ok=True)
+    for key, values in retrieved_map_name.items():
+        if len(values):
+            query_img_dir = os.path.join(result_image_dir, key)
+            os.makedirs(query_img_dir, exist_ok=True)
+            pcd1 = o3d.io.read_point_cloud(os.path.join(wz_path, key + '.pcd'))
+            point1 = np.array(pcd1.points).astype('float32')
+            point1_cloud = o3d.geometry.PointCloud()
+            point1_cloud.points = o3d.utility.Vector3dVector(point1)
+            for value in values:
+                pcd2 = o3d.io.read_point_cloud(os.path.join(wz_path, value + '.pcd'))
+                point2 = np.array(pcd2.points).astype('float32')
+                point2_cloud = o3d.geometry.PointCloud()
+                point2_cloud.points = o3d.utility.Vector3dVector(point2)
+
+                point1_cloud.paint_uniform_color([1, 0, 0])
+                point2_cloud.paint_uniform_color([0, 1, 0])
+                all_point = point1_cloud + point2_cloud
+
+                vis = o3d.visualization.Visualizer()
+                vis.create_window()
+                vis.add_geometry(all_point)
+                vis.update_geometry(all_point)
+                vis.poll_events()
+                vis.update_renderer()
+
+                save_name = key + '_' + value
+                save_file = os.path.join(query_img_dir, save_name + '.png')
+                vis.capture_screen_image(save_file)
+                vis.destroy_window()
+                time.sleep(0.2)
+    return
 
 def process_pc(query_pcdir, pcs):
     datas = []
@@ -234,6 +272,148 @@ class WeldScene:
 
         return distance,translate
 
+    def bbox_(self,norm1,norm2,distance,extent,mesh_arrow1,mesh_arrow2):
+        norm_ori = np.array([0, 0, 1])
+        vector_seam=abs(np.cross(norm1,norm2))
+        crop_extent1=np.array([100,200,300])
+        crop_extent2 = np.array([100,200,300])
+        rotation_bbox1 = rotation_matrix_from_vectors(norm_ori, norm_ori)
+        rotation_bbox2 = rotation_matrix_from_vectors(norm_ori, norm_ori)
+        axis_mesh = np.array([0, 0, 1])
+        if abs(norm1[2]) == 0 and (abs(norm1[0]) != 0 or abs(norm1[1]) != 0):
+            rotation_mesh1 = self.rotation(axis_mesh, norm1)
+            mesh_arrow1.rotate(rotation_mesh1, center=np.array([0, 0, 0]))
+            print('aa')
+        elif norm1[2] < 0 and abs(norm1[0]) == 0 and abs(norm1[1]) == 0:
+            rotation_mesh1=np.array([1,0,0,0,1,0,0,0,-1]).reshape(3,3)
+            mesh_arrow1.rotate(rotation_mesh1, center=np.array([0, 0, 0]))
+            print('bb')
+
+        if abs(norm2[2]) == 0 and (abs(norm2[0]) != 0 or abs(norm2[1]) != 0):
+            rotation_mesh2 = self.rotation(axis_mesh, norm2)
+            mesh_arrow2.rotate(rotation_mesh2, center=np.array([0, 0, 0]))
+            print('cc')
+        elif norm2[2] < 0 and abs(norm2[0]) == 0 and abs(norm2[1]) == 0:
+            rotation_mesh2=np.array([1,0,0,0,1,0,0,0,-1]).reshape(3,3)
+            mesh_arrow2.rotate(rotation_mesh2, center=np.array([0, 0, 0]))
+            print('dd')
+        #the situation that the norm vector is parallel to axis
+            #norm [0,0,1], plane in XOY
+
+        if abs(norm1[2]) != 0 and abs(norm1[1]) == 0 and abs(norm1[0]) == 0:
+            if np.max(vector_seam)==vector_seam[0]:
+                crop_extent1 = np.array([distance,extent,1])
+            elif np.max(vector_seam)==vector_seam[1]:
+                crop_extent1 = np.array([extent, distance, 1])
+        if abs(norm2[2]) != 0 and abs(norm2[1]) == 0 and abs(norm2[0]) == 0:
+            if np.max(vector_seam)==vector_seam[0]:
+                crop_extent2 = np.array([distance,extent,1])
+            elif np.max(vector_seam)==vector_seam[1]:
+                crop_extent2 = np.array([extent, distance, 1])
+        #norm [0,1,0], plane in XOZ
+        if abs(norm1[1]) != 0 and abs(norm1[0]) == 0 and abs(norm1[2]) == 0:
+            if np.max(vector_seam)==vector_seam[0]:
+                crop_extent1 = np.array([distance,1,extent])
+            elif np.max(vector_seam)==vector_seam[2]:
+                crop_extent1 = np.array([extent, 1, distance])
+        if abs(norm2[1]) != 0 and abs(norm2[0]) == 0 and abs(norm2[2]) == 0:
+            if np.max(vector_seam)==vector_seam[0]:
+                crop_extent2 = np.array([distance,1,extent])
+            elif np.max(vector_seam)==vector_seam[2]:
+                crop_extent2 = np.array([extent, 1, distance])
+
+        # if y_diff > 0 and x_diff == 0 and z_diff == 0:
+            #norm [1,0,0], plane in YOZ
+        if abs(norm1[0]) != 0 and abs(norm1[1]) == 0 and abs(norm1[2]) == 0:
+            if np.max(vector_seam)==vector_seam[1]:
+                crop_extent1 = np.array([1,distance, extent])
+            elif np.max(vector_seam)==vector_seam[2]:
+                crop_extent1 = np.array([1, extent, distance])
+        if abs(norm2[0]) != 0 and abs(norm2[1]) == 0 and abs(norm2[2]) == 0:
+            if np.max(vector_seam)==vector_seam[1]:
+                crop_extent2 = np.array([1,distance, extent])
+            elif np.max(vector_seam)==vector_seam[2]:
+                crop_extent2 = np.array([1, extent, distance])
+
+        #the situation that the norm vector is not parallel to axis
+        #norm on XOZ plane
+        if abs(norm1[1]) == 0 and abs(norm1[0]) != 0 and abs(norm1[2]) != 0:
+            axis_bbox1=np.array([1,0,0])
+            crop_extent1=np.array([1,extent,distance])
+            rotation_mesh1=self.rotation(axis_mesh,norm1)
+            mesh_arrow1.rotate(rotation_mesh1,center=np.array([0, 0, 0]))
+            rotation_bbox1=self.rotation(axis_bbox1,norm1)
+            if abs(norm1[0])>=abs(norm1[2]):
+                axis_bbox2 = np.array([1, 0, 0])
+            elif abs(norm1[0])<abs(norm1[2]):
+                axis_bbox2 = np.array([[0,0,1]])
+            rotation_bbox2 = self.rotation(axis_bbox2, norm1)
+
+        if abs(norm2[1]) == 0 and abs(norm2[0]) != 0 and abs(norm2[2]) != 0:
+            axis_bbox2=np.array([1,0,0])
+            crop_extent2=np.array([1,extent,distance])
+            rotation_mesh2=self.rotation(axis_mesh,norm2)
+            mesh_arrow2.rotate(rotation_mesh2,center=np.array([0, 0, 0]))
+            rotation_bbox2=self.rotation(axis_bbox2,norm2)
+            if abs(norm2[0])>=abs(norm2[2]):
+                axis_bbox1 = np.array([1, 0, 0])
+            elif abs(norm2[0])<abs(norm2[2]):
+                axis_bbox1 = np.array([[0,0,1]])
+            rotation_bbox1 = self.rotation(axis_bbox1, norm2)
+
+        #norm on XOY plane
+        if abs(norm1[2]) == 0 and abs(norm1[0]) != 0 and abs(norm1[1]) != 0:
+            axis_bbox1 = np.array([1, 0, 0])
+            crop_extent1 = np.array([1, distance, extent])
+            rotation_mesh1 = self.rotation(axis_mesh, norm1)
+            mesh_arrow1.rotate(rotation_mesh1, center=np.array([0, 0, 0]))
+            rotation_bbox1 = self.rotation(axis_bbox1, norm1)
+            if abs(norm1[0])>=abs(norm1[1]):
+                axis_bbox2 = np.array([1,0,0])
+            elif abs(norm1[0])<abs(norm1[1]):
+                axis_bbox2 = np.array([0, 1, 0])
+            rotation_bbox2 = self.rotation(axis_bbox2, norm1)
+
+        if abs(norm2[2]) == 0 and abs(norm2[0]) != 0 and abs(norm2[1]) != 0:
+            axis_bbox2=np.array([1,0,0])
+            axis_bbox1=np.array([1,0,0])
+            crop_extent2=np.array([1,distance,extent])
+            rotation_mesh2=self.rotation(axis_mesh,norm2)
+            mesh_arrow2.rotate(rotation_mesh2,center=np.array([0, 0, 0]))
+            rotation_bbox2=self.rotation(axis_bbox2,norm2)
+            if abs(norm2[0]) >= abs(norm2[1]):
+                axis_bbox1 = np.array([1, 0, 0])
+            elif abs(norm2[0]) < abs(norm2[1]):
+                axis_bbox1 = np.array([0, 1, 0])
+            rotation_bbox1 = self.rotation(axis_bbox1, norm2)
+
+        #norm on YOZ plane
+        if abs(norm1[0]) == 0 and abs(norm1[1]) != 0 and abs(norm1[2]) != 0:
+            axis_bbox1 = np.array([0, 0, 1])
+            crop_extent1 = np.array([extent, distance, 1])
+            rotation_mesh1 = self.rotation(axis_mesh, norm1)
+            mesh_arrow1.rotate(rotation_mesh1, center=np.array([0, 0, 0]))
+            rotation_bbox1 = self.rotation(axis_bbox1, norm1)
+            if abs(norm1[1])>=abs(norm1[2]):
+                axis_bbox2 = np.array([0, 1, 0])
+            elif abs(norm1[1])<abs(norm1[2]):
+                axis_bbox2 = np.array([0, 0, 1])
+            rotation_bbox2 = self.rotation(axis_bbox2, norm1)
+
+        if abs(norm2[0]) == 0 and abs(norm2[1]) != 0 and abs(norm2[2]) != 0:
+            axis_bbox2=np.array([0,0,1])
+            crop_extent2=np.array([extent,distance,1])
+            rotation_mesh2=self.rotation(axis_mesh,norm2)
+            mesh_arrow2.rotate(rotation_mesh2,center=np.array([0, 0, 0]))
+            rotation_bbox2=self.rotation(axis_bbox2,norm2)
+            if abs(norm2[1])>=abs(norm2[2]):
+                axis_bbox1 = np.array([0, 1, 0])
+            elif abs(norm2[1])<abs(norm2[2]):
+                axis_bbox1 = np.array([0, 0, 1])
+            rotation_bbox1 = self.rotation(axis_bbox1, norm2)
+
+        return rotation_bbox1,rotation_bbox2,crop_extent1,crop_extent2
+
     def crop(self, weld_info,num_points=2048, vis=False):
         '''Cut around welding spot
 
@@ -270,7 +450,7 @@ class WeldScene:
         # new normals
         norm1 = np.around(weld_info[0, 4:7], decimals=6)
         norm2 = np.around(weld_info[0, 7:10], decimals=6)
-
+        print(norm1,norm2)
         norm1_r = np.matmul(rotation, norm1.T)
         norm2_r = np.matmul(rotation, norm2.T)
         # torch pose
@@ -278,24 +458,27 @@ class WeldScene:
             weld_info[i,4:7] = norm1_r
             weld_info[i,7:10] = norm2_r
 
-        coor1 = o3d.geometry.TriangleMesh.create_coordinate_frame(size=20, origin=[0, 0, 0])
+        coor1 = o3d.geometry.TriangleMesh.create_coordinate_frame(size=50, origin=[0, 0, 0])
         mesh_arrow1 = o3d.geometry.TriangleMesh.create_arrow(
-            cone_height=20 * 1,
+            cone_height=60 * 1,
             cone_radius=1.5 * 1,
-            cylinder_height=20 * 1,
+            cylinder_height=30 * 1,
             cylinder_radius=1.5 * 1
         )
         mesh_arrow1.paint_uniform_color([0, 0, 1])
 
         mesh_arrow2 = o3d.geometry.TriangleMesh.create_arrow(
-            cone_height=20 * 1,
+            cone_height=60 * 1,
             cone_radius=1.5 * 1,
-            cylinder_height=20 * 1,
+            cylinder_height=30 * 1,
             cylinder_radius=1.5 * 1
         )
         mesh_arrow2.paint_uniform_color([0, 1, 0])
         norm_ori = np.array([0, 0, 1])
         # bounding box of cutting area
+        rotation_bbox1, rotation_bbox2, crop_extent1, crop_extent2=self.bbox_(norm1,norm2,distance,extent,mesh_arrow1
+                                                                              ,mesh_arrow2)
+
         rotation_bbox = rotation_matrix_from_vectors(norm_ori, norm_ori)
         seams_direction=np.cross(norm1,norm2)
         if (abs(seams_direction[0])==0 and (abs(seams_direction[1])!=0 or abs(seams_direction[2])!=0)) or (abs(seams_direction[0])!=0 and (abs(seams_direction[1])!=0 or abs(seams_direction[2])!=0)):
@@ -310,9 +493,10 @@ class WeldScene:
         xyz_crop = self.xyz[idx_crop_large]
         xyz_crop -= translate
         xyz_crop_new = np.matmul(rotation_matrix_from_vectors(norm_ori, norm_ori), xyz_crop.T).T
-
-        if vis:
-            o3d.visualization.draw_geometries([cropped_pc_large,bbox,pc])
+        print('xyz_crop_new.shape[0]',xyz_crop_new.shape[0])
+        # if vis:
+        if xyz_crop_new.shape[0]<500:
+            o3d.visualization.draw_geometries([cropped_pc_large,bbox,pc,coor1,weld_seam,mesh_arrow1,mesh_arrow2])
 
         while (len(xyz_crop_new)!=0 and xyz_crop_new.shape[0] < num_points):
             xyz_crop_new = np.vstack((xyz_crop_new, xyz_crop_new))

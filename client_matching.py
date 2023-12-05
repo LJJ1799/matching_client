@@ -1,15 +1,15 @@
 import xml.etree.ElementTree as ET
 # import open3d.core as o3c
-from single_spot_table.obj_geo_based_classification import PFE,main as clustering
-from lut import LookupTable
+# from single_spot_table.obj_geo_based_classification import PFE,main as clustering
+# from lut import LookupTable
 from pointnn.save_pn_feature import save_feature
 from pointnn.cossim import pointnn
 from pointnet2.main import pointnet2
 from pointnext.main import pointnext
 from ICP_RMSE import ICP
 from poseE.main import poseestimation
-from PoseEstimation.train import TrainPointNet2
-from PoseEstimation.test import PoseLookup
+# from PoseEstimation.train import TrainPointNet2
+# from PoseEstimation.test import PoseLookup
 import os.path
 from tools import get_ground_truth,get_weld_info,WeldScene,image_save
 from evaluation import mean_metric
@@ -17,7 +17,7 @@ import open3d as o3d
 import numpy as np
 import time
 import shutil
-from model_splitter import split_models
+# from model_splitter import split_models
 from create_pc import split,convert
 
 CURRENT_PATH = os.path.abspath(__file__)
@@ -90,7 +90,9 @@ def matching(data_folder,xml_file,model,dienst_number,save_image=False,auto_del=
 
     if model == 'POSE':
         print('POSE ESTIMATION')
-        poseestimation(wz_path,xml_path)
+        poseestimation(wz_path,xml_path,SNahts,tree)
+
+
     else:
         retrieved_map={}
         methoe_time=time.time()
