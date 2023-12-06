@@ -254,8 +254,8 @@ def poseestimation(wz_path,xml_path,SNahts,tree):
                     rotation_matrix = torch.tensor(rotation_matrix.astype(float), dtype=torch.float32).cuda()
                     predicted_rotation_matrix = model(point_cloud.unsqueeze(0), pose_position.unsqueeze(0),
                                                       welding_gun_pcd.unsqueeze(0))
-                    for XVek in Frame.findall('XVek'):
-                        XVek.set('X',)
+                    # for XVek in Frame.findall('XVek'):
+                    #     XVek.set('X',)
                     predict_rot_dict[name] = predicted_rotation_matrix
                     true_matrices.append(rotation_matrix)
                     predicted_matrices.append(predicted_rotation_matrix.squeeze(0))

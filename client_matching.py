@@ -72,21 +72,21 @@ def matching(data_folder,xml_file,model,dienst_number,save_image=False,auto_del=
 
         inter_time=time.time()
         print('creating pointcloud time',inter_time-start_time)
-        os.makedirs(wz_path,exist_ok=True)
-        ws = WeldScene(os.path.join(data_path,Baugruppe+'.pcd'))
-        slice_name_list=[]
-        for SNaht in SNahts:
-            slice_name = SNaht.attrib['Name']
-            print(slice_name)
-            # if os.path.exists(os.path.join(wz_path,slice_name+'.pcd'))==False:
-            weld_info=weld_infos[weld_infos[:,0]==slice_name][:,3:].astype(float)
-            if len(weld_info)==0:
-                continue
-            slice_name_list.append(slice_name + '.pcd')
-            cxy, cpc, new_weld_info = ws.crop(weld_info=weld_info, num_points=2048)
-            pc = o3d.geometry.PointCloud()
-            pc.points = o3d.utility.Vector3dVector(cxy)
-            o3d.io.write_point_cloud(os.path.join(wz_path, slice_name + '.pcd'), pointcloud=pc, write_ascii=True)
+    os.makedirs(wz_path,exist_ok=True)
+    ws = WeldScene(os.path.join(data_path,Baugruppe+'.pcd'))
+    slice_name_list=[]
+    for SNaht in SNahts:
+        slice_name = SNaht.attrib['Name']
+        print(slice_name)
+        # if os.path.exists(os.path.join(wz_path,slice_name+'.pcd'))==False:
+        weld_info=weld_infos[weld_infos[:,0]==slice_name][:,3:].astype(float)
+        if len(weld_info)==0:
+            continue
+        slice_name_list.append(slice_name + '.pcd')
+        cxy, cpc, new_weld_info = ws.crop(weld_info=weld_info, num_points=2048)
+        pc = o3d.geometry.PointCloud()
+        pc.points = o3d.utility.Vector3dVector(cxy)
+        o3d.io.write_point_cloud(os.path.join(wz_path, slice_name + '.pcd'), pointcloud=pc, write_ascii=True)
 
     if model == 'POSE':
         print('POSE ESTIMATION')

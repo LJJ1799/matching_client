@@ -476,8 +476,8 @@ class WeldScene:
         mesh_arrow2.paint_uniform_color([0, 1, 0])
         norm_ori = np.array([0, 0, 1])
         # bounding box of cutting area
-        rotation_bbox1, rotation_bbox2, crop_extent1, crop_extent2=self.bbox_(norm1,norm2,distance,extent,mesh_arrow1
-                                                                              ,mesh_arrow2)
+        # rotation_bbox1, rotation_bbox2, crop_extent1, crop_extent2=self.bbox_(norm1,norm2,distance,extent,mesh_arrow1
+        #                                                                       ,mesh_arrow2)
 
         rotation_bbox = rotation_matrix_from_vectors(norm_ori, norm_ori)
         seams_direction=np.cross(norm1,norm2)
