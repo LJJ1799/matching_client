@@ -254,12 +254,24 @@ def poseestimation(wz_path,xml_path,SNahts,tree):
                     rotation_matrix = torch.tensor(rotation_matrix.astype(float), dtype=torch.float32).cuda()
                     predicted_rotation_matrix = model(point_cloud.unsqueeze(0), pose_position.unsqueeze(0),
                                                       welding_gun_pcd.unsqueeze(0))
-                    # for XVek in Frame.findall('XVek'):
-                    #     XVek.set('X',)
+                    for XVek in Frame.findall('XVek'):
+                        XVek.set('X', str(np.array(rotation_matrix[0, 0].cpu())))
+                        XVek.set('Y', str(np.array(rotation_matrix[1, 0].cpu())))
+                        XVek.set('Z', str(np.array(rotation_matrix[2, 0].cpu())))
+                    for YVek in Frame.findall('YVek'):
+                        YVek.set('X', str(np.array(rotation_matrix[0, 1].cpu())))
+                        YVek.set('Y', str(np.array(rotation_matrix[1, 1].cpu())))
+                        YVek.set('Z', str(np.array(rotation_matrix[2, 1].cpu())))
+
+                    for ZVek in Frame.findall('YVek'):
+                        ZVek.set('X', str(np.array(rotation_matrix[0, 2].cpu())))
+                        ZVek.set('Y', str(np.array(rotation_matrix[1, 2].cpu())))
+                        ZVek.set('Z', str(np.array(rotation_matrix[2, 2].cpu())))
+                    print(rotation_matrix)
                     predict_rot_dict[name] = predicted_rotation_matrix
                     true_matrices.append(rotation_matrix)
                     predicted_matrices.append(predicted_rotation_matrix.squeeze(0))
-                    print(predicted_rotation_matrix)
+                    # print(predicted_rotation_matrix)
         true_matrices = torch.stack(true_matrices)
         predicted_matrices = torch.stack(predicted_matrices)
         mse = torch.mean((true_matrices - predicted_matrices) ** 2)

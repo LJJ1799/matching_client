@@ -91,7 +91,7 @@ def matching(data_folder,xml_file,model,dienst_number,save_image=False,auto_del=
     if model == 'POSE':
         print('POSE ESTIMATION')
         poseestimation(wz_path,xml_path,SNahts,tree)
-
+        tree.write(os.path.join(xml_output_path, Baugruppe + '_predict.xml'))
 
     else:
         retrieved_map={}
