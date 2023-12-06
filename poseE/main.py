@@ -7,7 +7,7 @@ import xml.etree.ElementTree as ET
 import json
 import os
 from tools import get_weld_info
-
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 CURRENT_PATH = os.path.abspath(__file__)
 ROOT = os.path.dirname(CURRENT_PATH)
 
@@ -217,45 +217,84 @@ class PointCloudNet(nn.Module):
         rotation_matrix = x.view(-1, 3, 3)
         return rotation_matrix
 
-def poseestimation(wz_path,xml_path):
-    weld_infos = get_weld_info(xml_path)
-    weld_infos = np.vstack(weld_infos)
+def poseestimation(wz_path,xml_path,SNahts,tree):
+    # weld_infos = get_weld_info(xml_path)
+    # weld_infos = np.vstack(weld_infos)
     # print(weld_infos[0,:])
-    device = torch.device('cuda:0')
-    model = PointCloudNet()
+    # device = torch.device('cuda:1')
+    model = PointCloudNet().cuda()
+    # model = model.to(device)
     model.load_state_dict(torch.load(os.path.join(ROOT,'model.pth')))
-    model=model.to(device)
+    # model=model.to(device)
     true_matrices = []
     predicted_matrices = []
+    predict_rot_dict={}
     with torch.no_grad():
-        for weld_info in weld_infos:
-            # print(weld_info)
-            # pcd = o3d.io.read_point_cloud(str('../data/Reisch/'+weld_info[0]+'.pcd'))
-            pcd = o3d.io.read_point_cloud(os.path.join(wz_path,weld_info[0]+'.pcd'))
+        for SNaht in SNahts:
+            name = SNaht.attrib.get('Name')
+            pcd = o3d.io.read_point_cloud(os.path.join(wz_path,name+'.pcd'))
             point_cloud = torch.tensor(pcd.points, dtype=torch.float32).cuda()
-            weld_position=torch.tensor(weld_info[4:7].astype(float),dtype=torch.float32).cuda()
-            rotation_matrix=np.zeros((3,3))
-            rotation_matrix[0,0:3]=weld_info[17:20].astype(float)
-            rotation_matrix[1, 0:3] = weld_info[20:23].astype(float)
-            rotation_matrix[2, 0:3] = weld_info[23:26].astype(float)
-            # print(rotation_matrix)
-            rotation_matrix=torch.tensor(rotation_matrix,dtype=torch.float32).cuda()
-            # print(point_cloud,weld_position,rotation_matrix)
-            # print(weld_info)
-        # point_cloud, weld_position, rotation_matrix = dataset[0]
-
-            predicted_rotation_matrix = model(point_cloud.unsqueeze(0), weld_position.unsqueeze(0), welding_gun_pcd.unsqueeze(0))
-            true_matrices.append(rotation_matrix)
-            predicted_matrices.append(predicted_rotation_matrix.squeeze(0))
-            print(predicted_rotation_matrix)
+            for Frames in SNaht.findall('Frames'):
+                for Frame in Frames.findall('Frame'):
+                    rotation_matrix = np.zeros((3, 3))
+                    for Pos in Frame.findall('Pos'):
+                        pose_position=torch.tensor(np.array([Pos.get('X'),Pos.get('Y'),Pos.get('Z')]).astype(float),dtype=torch.float32).cuda()
+                    for XVek in Frame.findall('XVek'):
+                        # 3x3 rotation
+                        Xrot = np.array([XVek.get('X'), XVek.get('Y'), XVek.get('Z')])
+                        rotation_matrix[0:3, 0] = Xrot
+                    for YVek in Frame.findall('YVek'):
+                        # 3x3 rotation
+                        Yrot = np.array([YVek.get('X'), YVek.get('Y'), YVek.get('Z')])
+                        rotation_matrix[0:3, 1] = Yrot
+                    for ZVek in Frame.findall('ZVek'):
+                        # 3x3 rotation
+                        Zrot = np.array([ZVek.get('X'), ZVek.get('Y'), ZVek.get('Z')])
+                        rotation_matrix[0:3, 2] = Zrot
+                    rotation_matrix = torch.tensor(rotation_matrix.astype(float), dtype=torch.float32).cuda()
+                    predicted_rotation_matrix = model(point_cloud.unsqueeze(0), pose_position.unsqueeze(0),
+                                                      welding_gun_pcd.unsqueeze(0))
+                    for XVek in Frame.findall('XVek'):
+                        XVek.set('X',)
+                    predict_rot_dict[name] = predicted_rotation_matrix
+                    true_matrices.append(rotation_matrix)
+                    predicted_matrices.append(predicted_rotation_matrix.squeeze(0))
+                    print(predicted_rotation_matrix)
         true_matrices = torch.stack(true_matrices)
         predicted_matrices = torch.stack(predicted_matrices)
         mse = torch.mean((true_matrices - predicted_matrices) ** 2)
         print(f"Mean Squared Error: {mse}")
+        # for weld_info in weld_infos:
+        #     # print(weld_info)
+        #     # pcd = o3d.io.read_point_cloud(str('../data/Reisch/'+weld_info[0]+'.pcd'))
+        #     name=str(weld_info[0])
+        #     pcd = o3d.io.read_point_cloud(os.path.join(wz_path,name+'.pcd'))
+        #     point_cloud = torch.tensor(pcd.points, dtype=torch.float32).cuda()
+        #     pose_position=torch.tensor(weld_info[4:7].astype(float),dtype=torch.float32).cuda()
+        #     rotation_matrix=np.zeros((3,3))
+        #     rotation_matrix[0, 0:3]=weld_info[17:20].astype(float)
+        #     rotation_matrix[1, 0:3] = weld_info[20:23].astype(float)
+        #     rotation_matrix[2, 0:3] = weld_info[23:26].astype(float)
+        #     # print(rotation_matrix)
+        #     rotation_matrix=torch.tensor(rotation_matrix,dtype=torch.float32).cuda()
+        #     # print(point_cloud,weld_position,rotation_matrix)
+        #     # print(weld_info)
+        # # point_cloud, weld_position, rotation_matrix = dataset[0]
+        #
+        #     predicted_rotation_matrix = model(point_cloud.unsqueeze(0), pose_position.unsqueeze(0), welding_gun_pcd.unsqueeze(0))
+        #     predict_rot_dict[name]=predicted_rotation_matrix
+        #     true_matrices.append(rotation_matrix)
+        #     predicted_matrices.append(predicted_rotation_matrix.squeeze(0))
+        #     print(predicted_rotation_matrix)
+        # true_matrices = torch.stack(true_matrices)
+        # predicted_matrices = torch.stack(predicted_matrices)
+        # mse = torch.mean((true_matrices - predicted_matrices) ** 2)
+        # print(f"Mean Squared Error: {mse}")
+    # return predict_rot_dict
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+    # main()sss
     # model = PointCloudNet()
     # point_cloud, weld_position, rotation_matrix = dataset[0]
     #
