@@ -5,6 +5,8 @@ import threading
 from time import sleep
 from client_matching import matching
 import configparser
+import time
+from threading import Thread
 # create a c++ struct like the message in the msclient source code
 # the original struct is copied below for convenience
 """
@@ -30,7 +32,7 @@ def connect_moses_socket(host, port):
 
     return s
 
-def send_moses_message(con_socket, client_name, server_name, service_number, task_number, data, ):
+def send_moses_message(con_socket, client_name, server_name, service_number, task_number, data):
     
     # convert the input data into a bytecode message in the form of the above struct
     byte_message = message_struct.pack(client_name.encode(), server_name.encode(), task_number, service_number, data.encode())
@@ -62,8 +64,13 @@ def receive_moses_message(con_socket):
         print("-------------------------")
         return response_sender,response_target,response_task_number,response_service_number, response_data
 
+def recycle(con_socket, client_name, server_name, service_number, task_number, data):
+    send_moses_message(con_socket,client_name,server_name,service_number,task_number,'running')
+    time.sleep(10)
+
+
 if __name__ == "__main__":
-    
+    t1 = Thread(target=recycle)
     config = configparser.ConfigParser()
     config.read('config.ini')
     host=config.get('config','server_ip')
@@ -71,19 +78,22 @@ if __name__ == "__main__":
     xml_dir=config.get('config','xml_dir')
     auto_del=config.get('config','auto_del')
     model = config.get('config','model')
+    pose_estimation=config.get('config','pose_estimation')
     con_socket = connect_moses_socket(host, port)
     send_moses_message(con_socket,"Pierce_CSL", "MOSES_Cl1", 123, 60, 'Verbunden')
-
+    star_time=time.time()
     while True:
         sender,target,task_number,service_number,data=receive_moses_message(con_socket)
         if service_number==60:
-            send_moses_message(con_socket,sender,target,123,task_number,'training model '+str(model))
-            matching(os.path.join(ROOT,xml_dir),data.rstrip(),model,service_number,auto_del=auto_del)
-            send_moses_message(con_socket,target,sender,123,task_number,'finished')
+            send_moses_message(con_socket,sender,target,service_number,task_number,'training model '+str(model))
+            t1.start()
+            matching(os.path.join(ROOT,xml_dir),data.rstrip(),model,service_number,pose_estimation= False,auto_del=auto_del)
+            send_moses_message(con_socket,target,sender,service_number,task_number,'finished')
         elif service_number==61:
-            send_moses_message(con_socket, sender, target, 123, task_number, 'Find similar slices using model ' + str(model))
-            matching(os.path.join(ROOT, xml_dir), data.rstrip(), model, service_number, auto_del=auto_del)
-            send_moses_message(con_socket, target, sender, 123, task_number, 'finished')
+            send_moses_message(con_socket, sender, target, service_number, task_number, 'Find similar slices using model ' + str(model))
+            t1.start()
+            matching(os.path.join(ROOT, xml_dir), data.rstrip(), model, service_number, pose_estimation=pose_estimation,auto_del=auto_del)
+            send_moses_message(con_socket, target, sender, service_number, task_number, 'finished')
 
             # if len(result)==1:
             #     send_moses_message(con_socket,target,sender,123,task_number,'Keine ähnliche Schweißpositionen gefunden')

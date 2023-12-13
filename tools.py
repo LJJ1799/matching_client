@@ -427,17 +427,32 @@ class WeldScene:
             cropped_pc (o3d.geometry.PointCloud): cropped pc for visualization
             weld_info (np.ndarray): update the rotated component pose for torch (if there is)
         '''
+        # print(weld_info)
+        torch_path='./data/torch/MRW510_10GH.obj'
+        torch_model=o3d.io.read_triangle_mesh(torch_path)
+        tf=np.zeros((4,4))
+        tf[3,3]=1.0
+        tf[0:3,0:3]=weld_info[1,14:23].reshape(3,3).T
+        # tf[0:3,3]=weld_info[0,1:4].reshape(1,3)
+
+
         pc = copy.copy(self.pc)
         weld_seam_points=weld_info[:,1:4]
         weld_seam=o3d.geometry.PointCloud()
         weld_seam.points=o3d.utility.Vector3dVector(weld_seam_points)
         distance,translate=self.get_distance_and_translate(weld_info)
+        pc.translate(-translate)
+        weld_seam.translate(-translate)
+        # print(np.array([weld_seam.points[0]]))
+        tf[0:3, 3]=np.array([weld_seam.points[0]]).reshape(3,)
+        # print('tf',tf)
+        torch_model.compute_vertex_normals()
+        torch_model.transform(tf)
         extent = 250
         # crop_extent = np.array([max(x_diff,extent), max(y_diff,extent),max(z_diff,extent)])
         crop_extent=np.array([distance,extent+5,extent+5])
         # move the coordinate center to the welding spot
-        pc.translate(-translate)
-        weld_seam.translate(-translate)
+
         # rotation at this welding spot  1.
         rot = weld_info[0,10:13] * np.pi / 180
         rotation = rotate_mat(axis=[1, 0, 0], radian=rot[0])
@@ -450,7 +465,7 @@ class WeldScene:
         # new normals
         norm1 = np.around(weld_info[0, 4:7], decimals=6)
         norm2 = np.around(weld_info[0, 7:10], decimals=6)
-        print(norm1,norm2)
+        # print(norm1,norm2)
         norm1_r = np.matmul(rotation, norm1.T)
         norm2_r = np.matmul(rotation, norm2.T)
         # torch pose
@@ -493,14 +508,17 @@ class WeldScene:
         xyz_crop = self.xyz[idx_crop_large]
         xyz_crop -= translate
         xyz_crop_new = np.matmul(rotation_matrix_from_vectors(norm_ori, norm_ori), xyz_crop.T).T
-        print('xyz_crop_new.shape[0]',xyz_crop_new.shape[0])
+        # print('xyz_crop_new.shape[0]',xyz_crop_new.shape[0])
         # if vis:
-        if xyz_crop_new.shape[0]<500:
-            o3d.visualization.draw_geometries([cropped_pc_large,bbox,pc,coor1,weld_seam,mesh_arrow1,mesh_arrow2])
+        # if xyz_crop_new.shape[0]<500:
+        # o3d.visualization.draw_geometries([cropped_pc_large,bbox,coor1,weld_seam,mesh_arrow1,mesh_arrow2,torch_model])
 
         while (len(xyz_crop_new)!=0 and xyz_crop_new.shape[0] < num_points):
             xyz_crop_new = np.vstack((xyz_crop_new, xyz_crop_new))
+
+        # print('xyz_crop_new',xyz_crop_new.shape)
         xyz_crop_new = fps(xyz_crop_new, num_points)
+        xyz_crop_new=np.vstack((np.array(weld_seam.points),xyz_crop_new))
         norm=np.vstack((norm1,norm2))
         return xyz_crop_new, cropped_pc_large, weld_info
 if __name__ == "__main__":
