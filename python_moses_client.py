@@ -64,13 +64,16 @@ def receive_moses_message(con_socket):
         print("-------------------------")
         return response_sender,response_target,response_task_number,response_service_number, response_data
 
-def recycle(con_socket, client_name, server_name, service_number, task_number, data):
-    send_moses_message(con_socket,client_name,server_name,service_number,task_number,'running')
-    time.sleep(10)
+def recycle(con_socket, client_name, server_name, service_number, task_number):
+    while True:
+        send_moses_message(con_socket, client_name, server_name, service_number, task_number, 'running')
+        time.sleep(15)
 
 
 if __name__ == "__main__":
+    flag=False
     t1 = Thread(target=recycle)
+    t1.start()
     config = configparser.ConfigParser()
     config.read('config.ini')
     host=config.get('config','server_ip')
@@ -80,21 +83,22 @@ if __name__ == "__main__":
     model = config.get('config','model')
     pose_estimation=config.get('config','pose_estimation')
     con_socket = connect_moses_socket(host, port)
-    send_moses_message(con_socket,"Pierce_CSL", "MOSES_Cl1", 123, 60, 'Verbunden')
+    send_moses_message(con_socket,"KI_Client", "MOSES_Cl1", 123, 60, 'Verbunden')
     star_time=time.time()
     while True:
         sender,target,task_number,service_number,data=receive_moses_message(con_socket)
-        if service_number==60:
+        t1 = Thread(target=recycle, args=(con_socket, sender, target, service_number, task_number))
+        t1.start()
+        if service_number==61:
             send_moses_message(con_socket,sender,target,service_number,task_number,'training model '+str(model))
-            t1.start()
             matching(os.path.join(ROOT,xml_dir),data.rstrip(),model,service_number,pose_estimation= False,auto_del=auto_del)
             send_moses_message(con_socket,target,sender,service_number,task_number,'finished')
-        elif service_number==61:
+        elif service_number==63:
             send_moses_message(con_socket, sender, target, service_number, task_number, 'Find similar slices using model ' + str(model))
             t1.start()
             matching(os.path.join(ROOT, xml_dir), data.rstrip(), model, service_number, pose_estimation=pose_estimation,auto_del=auto_del)
             send_moses_message(con_socket, target, sender, service_number, task_number, 'finished')
-
+        t1.join()
             # if len(result)==1:
             #     send_moses_message(con_socket,target,sender,123,task_number,'Keine ähnliche Schweißpositionen gefunden')
             # else:

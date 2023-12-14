@@ -99,22 +99,22 @@ def matching(data_folder,xml_file,model,dienst_number,pose_estimation=True,save_
         retrieved_map=pointnn(SNahts,tree,xml_path)
 
     elif model == 'pointnet2':
-        if dienst_number==60:
+        if dienst_number==61:
             print('training pointnet2')
             os.system('python pointnet2/train_siamese_fortools.py --file_path data/Reisch')
             print("pointnet2 training finished")
             return
-        elif dienst_number==61:
+        elif dienst_number==63:
             print('run pointnet2')
             retrieved_map,retrieved_map_name,tree=pointnet2(wz_path,SNahts,tree,xml_path,slice_name_list)
 
     elif model == 'pointnext':
-        if dienst_number==60:
+        if dienst_number==61:
             print('training pointnext')
             os.system('python pointnext/classification/main.py --file_path data/Reisch')
             print("pointnext training finished")
             return
-        elif dienst_number==61:
+        elif dienst_number==63:
             print('run pointnext')
             retrieved_map,retrieved_map_name,tree=pointnext(wz_path,SNahts,tree,xml_path,slice_name_list)
     print('retrieved_map_name',retrieved_map_name)
