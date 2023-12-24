@@ -144,9 +144,9 @@ def matching(data_folder,xml_file,model,dienst_number,pose_estimation=True,save_
 if __name__ == "__main__":
 
     data_folder=os.path.join(ROOT,'data')
-    xml='5012.xml'
+    xml='T5_201955555555_R3.xml'
     model='pointnext'
     pose_estimation=True
-    dienst_number=61## 1 training_similarity;2 predict torch pose; 3 training LUT
+    dienst_number=63## 1 training_similarity;2 predict torch pose; 3 training LUT
     matching(data_folder, xml, model,dienst_number,pose_estimation=True,save_image=False,auto_del=False)
 

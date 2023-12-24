@@ -11,6 +11,53 @@ from tools import get_weld_info
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 CURRENT_PATH = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(CURRENT_PATH)
+device = torch.device('cuda:0')
+
+def euler_angles_to_rotation_matrix(angles):
+    """ Convert Euler angles to a rotation matrix. Angles are assumed to be in ZYX order. """
+    B = angles.shape[0]
+    ones = torch.ones(B)
+    zeros = torch.zeros(B)
+
+    # Extracting individual angles
+    yaw, pitch, roll = angles[:, 0], angles[:, 1], angles[:, 2]
+
+    # Precomputing sine and cosine of angles
+    cy = torch.cos(yaw)
+    sy = torch.sin(yaw)
+    cp = torch.cos(pitch)
+    sp = torch.sin(pitch)
+    cr = torch.cos(roll)
+    sr = torch.sin(roll)
+
+    # Constructing rotation matrix
+    rotation_matrix = torch.zeros((B, 3, 3), device=angles.device)
+    rotation_matrix[:, 0, 0] = cy * cp
+    rotation_matrix[:, 0, 1] = cy * sp * sr - sy * cr
+    rotation_matrix[:, 0, 2] = cy * sp * cr + sy * sr
+    rotation_matrix[:, 1, 0] = sy * cp
+    rotation_matrix[:, 1, 1] = sy * sp * sr + cy * cr
+    rotation_matrix[:, 1, 2] = sy * sp * cr - cy * sr
+    rotation_matrix[:, 2, 0] = -sp
+    rotation_matrix[:, 2, 1] = cp * sr
+    rotation_matrix[:, 2, 2] = cp * cr
+
+    return rotation_matrix
+
+def rotation_matrix_to_euler_angles(matrix):
+    """ Assumes the order of the axes is ZYX """
+    sy = torch.sqrt(matrix[0, 0] * matrix[0, 0] +  matrix[1, 0] * matrix[1, 0])
+    singular = sy < 1e-6
+    if not singular:
+        x = torch.atan2(matrix[2, 1], matrix[2, 2])
+        y = torch.atan2(-matrix[2, 0], sy)
+        z = torch.atan2(matrix[1, 0], matrix[0, 0])
+    else:
+        x = torch.atan2(-matrix[1, 2], matrix[1, 1])
+        y = torch.atan2(-matrix[2, 0], sy)
+        z = 0
+
+    return torch.tensor([x, y, z]).to(device)
 
 
 def get_distance_and_translate(weld_info):
@@ -178,11 +225,10 @@ class PointCloudNet(nn.Module):
         self.conv3 = nn.Conv1d(128, 1024, 1)
         self.fc1 = nn.Linear(1024, 512)
         self.fc2 = nn.Linear(512, 256)
-        self.fc3 = nn.Linear(256, 9)
+        self.fc3 = nn.Linear(256, 3)  # 输出欧拉角
 
     def forward(self, point_cloud, weld_position, welding_gun_pcd):
-        print(weld_position)
-        x = torch.cat([point_cloud, weld_position.unsqueeze(1), welding_gun_pcd.cuda()], dim=1)
+        x = torch.cat([point_cloud, weld_position.unsqueeze(1), welding_gun_pcd], dim=1)
         x = x.transpose(2, 1)
 
         trans = self.tnet(x)
@@ -200,8 +246,8 @@ class PointCloudNet(nn.Module):
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
 
-        rotation_matrix = x.view(-1, 3, 3)
-        return rotation_matrix
+        euler_angles = x
+        return euler_angles
 
 def poseestimation(data_path,wz_path,xml_path,SNahts,tree,retrieved_map,vis=False):
     weld_infos = get_weld_info(xml_path)
@@ -218,6 +264,7 @@ def poseestimation(data_path,wz_path,xml_path,SNahts,tree,retrieved_map,vis=Fals
     slice_rot_list=[]
     slice_rot_dict={}
     with torch.no_grad():
+        coor1 = o3d.geometry.TriangleMesh.create_coordinate_frame(size=50, origin=[0, 0, 0])
         for key,vals in retrieved_map.items():
             if key in slice_rot_dict:
                 continue
@@ -226,7 +273,7 @@ def poseestimation(data_path,wz_path,xml_path,SNahts,tree,retrieved_map,vis=Fals
             point_cloud = torch.tensor(pcd.points, dtype=torch.float32).cuda()
             torch_name=weld_infos[weld_infos[:,0]==key][0,2]
             welding_gun_pcd = read_obj(os.path.join(data_path, 'torch', torch_name + '.obj'))
-            welding_gun_pcd = torch.tensor(welding_gun_pcd, dtype=torch.float32)
+            welding_gun_pcd = torch.tensor(welding_gun_pcd, dtype=torch.float32).cuda()
             weld_info=weld_infos[weld_infos[:,0]==key][:,3:].astype(float)
             _, translate = get_distance_and_translate(weld_info)
             weld_seam = o3d.geometry.PointCloud()
@@ -243,8 +290,45 @@ def poseestimation(data_path,wz_path,xml_path,SNahts,tree,retrieved_map,vis=Fals
                 rotation_matrix = torch.tensor(rotation_matrix.astype(float), dtype=torch.float32).cuda()
 
                 # print(rotation_matrix)
-                predicted_rotation_matrix = model(point_cloud.unsqueeze(0), pose_position.unsqueeze(0),
+                predicted_euler_angle = model(point_cloud.unsqueeze(0), pose_position.unsqueeze(0),
                                                   welding_gun_pcd.unsqueeze(0))
+                predicted_rotation_matrix = euler_angles_to_rotation_matrix(predicted_euler_angle)
+                print('euler',predicted_euler_angle)
+                print('predict',predicted_rotation_matrix)
+
+                if vis:
+                    elements = []
+                    # print(rotation_matrix)
+                    # print(np.array(predicted_rotation_matrix.cpu())[0].T)
+                    torch_model = o3d.io.read_triangle_mesh(os.path.join(data_path, 'torch', torch_name + '.obj'))
+                    copy_torch = copy(torch_model)
+                    GT_torch=copy(torch_model)
+                    elements.append(pcd)
+                    elements.append(coor1)
+                    tf = np.zeros((4, 4))
+                    tf[3, 3] = 1.0
+                    tf[0:3,0:3]=np.array(predicted_rotation_matrix.cpu())
+                    tf[0:3,3]=translate_weld_spot_points
+
+                    gt_tf = np.zeros((4, 4))
+                    gt_tf[3, 3] = 1.0
+                    gt_tf[0:3,0:3]=np.array(rotation_matrix.cpu())
+                    gt_tf[0:3,3]=translate_weld_spot_points
+                    GT_torch.compute_vertex_normals()
+                    GT_torch.paint_uniform_color([0, 0, 1])
+                    GT_torch.transform(gt_tf)
+
+
+                    # print('tf',tf)
+                    copy_torch.compute_vertex_normals()
+                    copy_torch.paint_uniform_color([0,1,0])
+                    copy_torch.transform(tf)
+                    # elements.append(GT_torch)
+                    elements.append(copy_torch)
+                    elements.append(weld_seam)
+                    o3d.visualization.draw_geometries(elements)
+
+
                 slice_rot_list.append(predicted_rotation_matrix.squeeze(0))
                 predict_rot_dict[key] = predicted_rotation_matrix.squeeze(0)
                 true_matrices.append(rotation_matrix)
@@ -287,7 +371,38 @@ def poseestimation(data_path,wz_path,xml_path,SNahts,tree,retrieved_map,vis=Fals
                 j+=1
     return tree
 
-
+# import torch.optim as optim
+# import torch.nn as nn
+#
+# # 初始化模型
+# model = PointCloudNet().to(device)
+# loss_function = nn.MSELoss()
+# optimizer = optim.Adam(model.parameters(), lr=0.001)
+#
+# # 设置训练参数
+# epochs = 1
+# welding_gun_pcd = welding_gun_pcd.cuda()
+#
+# for epoch in range(epochs):
+#     for i, data in enumerate(dataset):
+#         point_cloud, weld_position, true_rotation_matrix = data
+#         point_cloud = point_cloud.cuda()
+#         weld_position = weld_position.cuda()
+#         true_rotation_matrix = true_rotation_matrix.cuda()
+#
+#         optimizer.zero_grad()
+#         predicted_euler_angles = model(point_cloud.unsqueeze(0), weld_position.unsqueeze(0),
+#                                        welding_gun_pcd.unsqueeze(0))
+#
+#         true_euler_angles = rotation_matrix_to_euler_angles(true_rotation_matrix).cuda()
+#
+#         # 计算损失
+#         loss = loss_function(predicted_euler_angles, true_euler_angles)
+#         loss.backward()
+#         optimizer.step()
+#
+#         if i % 1000 == 0:
+#             print(f"Epoch [{epoch + 1}/{epochs}], Step [{i + 1}/{len(dataset)}], Loss: {loss.item()}")
             # for info in weld_info:
 
             #
