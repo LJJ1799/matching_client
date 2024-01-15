@@ -120,6 +120,11 @@ def matching(data_folder,xml_file,model,dienst_number,pose_estimation=True,save_
     print('retrieved_map_name',retrieved_map_name)
     #
     tree.write(os.path.join(xml_output_path, Baugruppe + '_similar.xml'))
+    metric=mean_metric(gt_id_map,retrieved_map)
+    print('metric',metric)
+    if auto_del:
+        shutil.rmtree(wz_path)
+
     if pose_estimation:
         print('POSE ESTIMATION')
         tree=poseestimation(data_path,wz_path,xml_path,SNahts,tree,retrieved_map_name,vis=True)

@@ -69,14 +69,12 @@ class PFE():
         '''
         i = 0
         idx_start = 0
-        print(path_file)
         with open(path_file, 'r') as f:
             count = 0
             # get the name of current component mesh
             namestr = os.path.splitext(os.path.split(path_file)[-1])[0]
-            print(namestr)
             # make directory for disassembled parts
-            os.makedirs(os.path.join(ROOT, self.path_split, namestr),exist_ok=True)
+            os.makedirs(os.path.join(ROOT, self.path_split, namestr))
             # prefix of single disassembled part
             outstr = os.path.join(ROOT, self.path_split, namestr) + '/' + namestr + '_'
             for line in f.readlines():
@@ -108,8 +106,8 @@ class PFE():
                         g = open(outstr + str(i - 1) + '.obj', 'a')
                         g.write(line)
             # copy the mtl file to the output folder
-            os.system('cp %s %s' % (os.path.join(self.path_models,namestr + '.mtl'),
-                                    os.path.join(self.path_split, namestr)))
+            os.system('cp %s %s' % (os.path.join(ROOT, self.path_models, namestr, namestr + '.mtl'),
+                                    os.path.join(ROOT, self.path_split, namestr)))
 
     def extract_facet_normals(self, mesh: trimesh.Trimesh):
         '''Histogram of normal distribution
@@ -348,7 +346,6 @@ class PFE():
         # print("Calinski-Harabasz Score", calinski_harabasz_score(features_norma, y_pred))
         # print(y_pred.shape)
         for i in range(n_clusters):
-            print(self.path_label_temp)
             # create folder for each cluster
             os.system('mkdir -p %s' % self.path_label_temp + '/' + str(i))
             idx = np.where(y_pred == i)
@@ -487,10 +484,12 @@ def main(pfe):
         print('Step1. Split the assembly')
     components = listdir(pfe.path_models)
     if not pfe.parallel:
-        for comps in components:
-            comp = os.path.join(pfe.path_models, comps)
-            if os.path.splitext(comp)[1] == '.obj':
-                pfe.split(comp)
+        for comp in components:
+            path_to_comp = os.path.join(pfe.path_models, comp)
+            files = listdir(path_to_comp)
+            for file in files:
+                if os.path.splitext(file)[1] == '.obj':
+                    pfe.split(os.path.join(path_to_comp, file))
     else:
         components = [component for component in components if
                       os.path.isdir(os.path.join(pfe.path_models, component))]  # remove non-folders
@@ -573,13 +572,13 @@ def main(pfe):
             if labeldict[key] == values[i]:
                 class_dict[key] = class_name
 
-    os.makedirs(pfe.path_classes,exist_ok=True)
+    os.makedirs(pfe.path_classes)
     with open(os.path.join(pfe.path_classes, 'class_dict.pkl'), 'wb') as tf:
         pickle.dump(class_dict, tf, protocol=2)
     for key in class_dict:
         class_dir = os.path.join(pfe.path_classes, class_dict[key])
         if not os.path.exists(class_dir):
-            os.makedirs(class_dir,exist_ok=True)
+            os.makedirs(class_dir)
         os.system('cp %s %s' % (key, class_dir))
 
     for i in range(len(values)):

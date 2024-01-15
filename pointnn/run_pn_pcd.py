@@ -17,11 +17,7 @@ from utils import save_model, save_args
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = BASE_DIR
-'''
-1. 修改file_path即可，训练完成的模型会保存在checkpoint中，最新的那个文件夹就是刚训练好的权重
-2. 修改save_pn_feature.py中的file_path和model_path即可
-3. 保存下来的特征在cnn_feature/pnn_tpc_cnn_feature.npz
-'''
+
 
 def parse_args():
     """Parameters"""
