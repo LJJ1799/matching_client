@@ -1,15 +1,10 @@
 import xml.etree.ElementTree as ET
-# import open3d.core as o3c
-# from single_spot_table.obj_geo_based_classification import PFE,main as clustering
-# from lut import LookupTable
 from pointnn.save_pn_feature import save_feature
 from pointnn.cossim import pointnn
 from pointnet2.main import pointnet2
 from pointnext.main import pointnext
 from ICP_RMSE import ICP
 from poseE.main import poseestimation
-# from PoseEstimation.train import TrainPointNet2
-# from PoseEstimation.test import PoseLookup
 import os.path
 from tools import get_ground_truth,get_weld_info,WeldScene,image_save
 from evaluation import mean_metric
@@ -117,6 +112,7 @@ def matching(data_folder,xml_file,model,dienst_number,pose_estimation=True,save_
         elif dienst_number==63:
             print('run pointnext')
             retrieved_map,retrieved_map_name,tree=pointnext(wz_path,SNahts,tree,xml_path,slice_name_list)
+    print('gt_map',gt_name_map)
     print('retrieved_map_name',retrieved_map_name)
     #
     tree.write(os.path.join(xml_output_path, Baugruppe + '_similar.xml'))
@@ -149,8 +145,8 @@ def matching(data_folder,xml_file,model,dienst_number,pose_estimation=True,save_
 if __name__ == "__main__":
 
     data_folder=os.path.join(ROOT,'data')
-    xml='T5_201955555555_R3.xml'
-    model='pointnext'
+    xml='Reisch_origin.xml'
+    model='icp'
     pose_estimation=True
     dienst_number=63## 1 training_similarity;2 predict torch pose; 3 training LUT
     matching(data_folder, xml, model,dienst_number,pose_estimation=True,save_image=False,auto_del=False)

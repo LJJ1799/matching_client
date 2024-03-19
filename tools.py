@@ -475,24 +475,24 @@ class WeldScene:
 
         coor1 = o3d.geometry.TriangleMesh.create_coordinate_frame(size=50, origin=[0, 0, 0])
         mesh_arrow1 = o3d.geometry.TriangleMesh.create_arrow(
-            cone_height=60 * 1,
-            cone_radius=1.5 * 1,
-            cylinder_height=30 * 1,
-            cylinder_radius=1.5 * 1
+            cone_height=90 * 1,
+            cone_radius=3 * 1,
+            cylinder_height=40 * 1,
+            cylinder_radius=3 * 1
         )
         mesh_arrow1.paint_uniform_color([0, 0, 1])
 
         mesh_arrow2 = o3d.geometry.TriangleMesh.create_arrow(
-            cone_height=60 * 1,
-            cone_radius=1.5 * 1,
-            cylinder_height=30 * 1,
-            cylinder_radius=1.5 * 1
+            cone_height=90 * 1,
+            cone_radius=3 * 1,
+            cylinder_height=40 * 1,
+            cylinder_radius=3 * 1
         )
         mesh_arrow2.paint_uniform_color([0, 1, 0])
         norm_ori = np.array([0, 0, 1])
         # bounding box of cutting area
         # rotation_bbox1, rotation_bbox2, crop_extent1, crop_extent2=self.bbox_(norm1,norm2,distance,extent,mesh_arrow1
-        #                                                                       ,mesh_arrow2)
+                                                                              # ,mesh_arrow2)
 
         rotation_bbox = rotation_matrix_from_vectors(norm_ori, norm_ori)
         seams_direction=np.cross(norm1,norm2)
@@ -511,7 +511,7 @@ class WeldScene:
         # print('xyz_crop_new.shape[0]',xyz_crop_new.shape[0])
         # if vis:
         # if xyz_crop_new.shape[0]<500:
-        # o3d.visualization.draw_geometries([cropped_pc_large,bbox,coor1,weld_seam,mesh_arrow1,mesh_arrow2,torch_model])
+        # o3d.visualization.draw_geometries([cropped_pc_large,bbox,weld_seam,mesh_arrow1,mesh_arrow2])
 
         while (len(xyz_crop_new)!=0 and xyz_crop_new.shape[0] < num_points):
             xyz_crop_new = np.vstack((xyz_crop_new, xyz_crop_new))
@@ -523,5 +523,6 @@ class WeldScene:
         return xyz_crop_new, cropped_pc_large, weld_info
 if __name__ == "__main__":
     xml_path = 'data/Reisch.xml'
-    weld_info=get_weld_info(xml_path)
+    weld_infos=get_weld_info(xml_path)
+    weld_infos = np.vstack(weld_infos)
 

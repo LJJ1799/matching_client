@@ -88,8 +88,8 @@ def process_data(args,file_path,slice_name_list):
         if tmp_name in names:
             continue
 
-        pcd = o3d.io.read_point_cloud(tmp_name)  # 路径需要根据实际情况设置
-        input = np.asarray(pcd.points)  # A已经变成n*3的矩阵
+        pcd = o3d.io.read_point_cloud(tmp_name)
+        input = np.asarray(pcd.points)
 
         lens = len(input)
         if lens==0:
@@ -101,7 +101,7 @@ def process_data(args,file_path,slice_name_list):
             input = tmp_input[:args.input_num]
 
         if lens > args.input_num:
-            np.random.shuffle(input)  # 每次取不一样的1024个点
+            np.random.shuffle(input)
             input = farthest_point_sampling(input, args.input_num)
 
         datas.append(input)
