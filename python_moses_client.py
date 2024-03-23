@@ -86,12 +86,12 @@ if __name__ == "__main__":
     while True:
         sender,target,task_number,service_number,data=receive_moses_message(con_socket)
         t1 = Thread(target=recycle, args=(con_socket, sender, target, service_number, task_number,freuquency))
-        if service_number==61:
+        if service_number==1:
             send_moses_message(con_socket,sender,target,service_number,task_number,'training model '+str(model))
             t1.start()
             matching(os.path.join(ROOT,xml_dir),data.rstrip(),model,service_number,pose_estimation= False,auto_del=auto_del)
             send_moses_message(con_socket,target,sender,service_number,task_number,'finished')
-        elif service_number==63:
+        elif service_number==2:
             send_moses_message(con_socket, sender, target, service_number, task_number, 'Find similar slices using model ' + str(model))
             t1.start()
             matching(os.path.join(ROOT, xml_dir), data.rstrip(), model, service_number, pose_estimation=pose_estimation,auto_del=auto_del)
