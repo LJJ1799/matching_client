@@ -6,7 +6,7 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(BASE_DIR)
 
-def pointnn(SNahts,tree,xml_path):
+def pointpn(SNahts,tree,xml_path):
     name_id_dict={}
     for Snaht in SNahts:
         Name = Snaht.attrib.get('Name')
@@ -64,4 +64,4 @@ def pointnn(SNahts,tree,xml_path):
     return retrieved_map
 
 if __name__ == "__main__":
-    pointnn()
+    pointpn()

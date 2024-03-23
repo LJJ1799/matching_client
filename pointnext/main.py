@@ -116,15 +116,10 @@ def pointnext(file_path,SNahts,tree,xml_path,slice_name_list):
                 compare_data = compare_data.view(1,-1,3)
                 compare_data = compare_data.float().cuda()
                 query_indata = torch.repeat_interleave(query_data,len(compare_data),dim=0)
-                tic_1=time.time()
                 pc_sim = sig(model(query_indata,compare_data))
-                toc_1=time.time()
                 # print('one calculation time:',toc_1-tic_1)
                 all_sim.extend(pc_sim.cpu().numpy().reshape(-1))
-            toc = time.time()
-            # print('DL processing time:', toc - tic)
             st = np.argsort(all_sim)[::-1]
-            # print('query pc: '+query_pc)
             for s in st:
                 if all_sim[s]<0.95:
                     continue

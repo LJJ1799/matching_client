@@ -9,7 +9,6 @@ def farthest_point_sampling(points, num_samples):
     sampled_indices = np.zeros(num_samples, dtype=np.int32)
     distances = np.full(num_points, np.inf)
 
-    # 随机选择一个起始点
     start_index = np.random.randint(num_points)
     sampled_indices[0] = start_index
 
@@ -17,13 +16,10 @@ def farthest_point_sampling(points, num_samples):
         last_sampled_index = sampled_indices[i - 1]
         last_sampled_point = points[last_sampled_index]
 
-        # 计算每个点到最后一个采样点的距离
         dist_to_last_sampled = np.linalg.norm(points - last_sampled_point, axis=1)
 
-        # 更新距离数组，保留最小距离
         distances = np.minimum(distances, dist_to_last_sampled)
 
-        # 选择最远的点作为下一个采样点
         next_sampled_index = np.argmax(distances)
         sampled_indices[i] = next_sampled_index
 
@@ -63,8 +59,8 @@ class ToolsDataset(data.Dataset):
                     if tmp_name in self.names:
                         continue
                     
-                    pcd=o3d.io.read_point_cloud(tmp_name)#路径需要根据实际情况设置
-                    input=np.asarray(pcd.points)#A已经变成n*3的矩阵
+                    pcd=o3d.io.read_point_cloud(tmp_name)
+                    input=np.asarray(pcd.points)
                     
                     lens = len(input)
         
@@ -74,7 +70,7 @@ class ToolsDataset(data.Dataset):
                         input = tmp_input[:self.input_num ]
                     
                     if lens > self.input_num :
-                        np.random.shuffle(input) # 每次取不一样的1024个点
+                        np.random.shuffle(input)
                         input = farthest_point_sampling(input,self.input_num)
                         
                     self.datas.append(input)
@@ -90,19 +86,6 @@ class ToolsDataset(data.Dataset):
     def __getitem__(self, index):
         # (n, 3)
         input = self.datas[index]
-        
-        # pcd=o3d.io.read_point_cloud(input)#路径需要根据实际情况设置
-        # input=np.asarray(pcd.points)#A已经变成n*3的矩阵
-        lens = len(input)
-          
-        # if lens < self.input_num :
-        #     ratio = int(self.input_num /lens + 1)
-        #     tmp_input = np.tile(input, (ratio, 1))
-        #     input = tmp_input[:self.input_num ]
-        
-        # if lens > self.input_num :
-        #     np.random.shuffle(input) # 每次取不一样的1024个点
-        #     input = farthest_point_sampling(input,self.input_num)
         
         input = pc_normalize(input)
         input = torch.from_numpy(input)

@@ -187,7 +187,7 @@ def main(args):
             optimizer.step()
 
             logger.info('epoch {}/{}, batch {}/{}, kind of sample pairs:{}, loss: {:.10f}'.format(epoch,args.epoch,i,len(trainDataLoader),msg[0],loss.item()))
-            # print('epoch {}/{}, batch {}/{}, 样本对种类:{}, loss: {:.10f}'.format(epoch,args.epoch,i,len(trainDataLoader),msg[0],loss.item()))
+
 
         if (epoch%5 == 0):
             logger.info('Save model...')

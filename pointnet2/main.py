@@ -135,7 +135,6 @@ def pointnet2(file_path,SNahts,tree,xml_path,slice_name_list):
             for i in range(len(pc_sim)):
                 score = sig(pc_sim[i])
                 all_sim.append(score.item())
-            toc=time.time()
             st = np.argsort(all_sim)[::-1]
             for s in st:
                 if all_sim[s]<0.95:

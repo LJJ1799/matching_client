@@ -42,7 +42,6 @@ def pc_normalize(pc):
 def read_pc(path):
     point_cloud = o3d.io.read_point_cloud(path)
 
-    # 将点云数据转换为NumPy数组
     points = np.asarray(point_cloud.points)
     return point_cloud, points
 
@@ -51,7 +50,6 @@ def vis_pc(pc):
     if isinstance(pc, np.ndarray):
         point_cloud = o3d.geometry.PointCloud()
         point_cloud.points = o3d.utility.Vector3dVector(pc)
-        # 可视化原始点云和旋转后的点云
         o3d.visualization.draw_geometries([point_cloud])
     else:
         o3d.visualization.draw_geometries([pc])
@@ -59,10 +57,8 @@ def vis_pc(pc):
 
 
 def project_pc(pc):
-    # 创建三个子图，分别显示投影到XY、XZ和YZ平面的图像
     fig, axes = plt.subplots(1, 3, figsize=(15, 5))
 
-    # 投影到XY平面
     axes[0].scatter(pc[:, 0], pc[:, 1], s=12, c='b')
     axes[0].set_xticks([])
     axes[0].set_yticks([])
@@ -70,7 +66,6 @@ def project_pc(pc):
     # axes[0].set_ylabel('Y')
     # axes[0].set_title('Projection onto XY Plane')
 
-    # 投影到XZ平面
     axes[1].scatter(pc[:, 0], pc[:, 2], s=12, c='r')
     axes[1].set_xticks([])
     axes[1].set_yticks([])
@@ -78,7 +73,6 @@ def project_pc(pc):
     # axes[1].set_ylabel('Z')
     # axes[1].set_title('Projection onto XZ Plane')
 
-    # 投影到YZ平面
     axes[2].scatter(pc[:, 1], pc[:, 2], s=12, c='g')
     axes[2].set_xticks([])
     axes[2].set_yticks([])
@@ -86,7 +80,6 @@ def project_pc(pc):
     # axes[2].set_ylabel('Z')
     # axes[2].set_title('Projection onto YZ Plane')
 
-    # 调整子图布局
     plt.tight_layout()
 
     fig.canvas.draw()
@@ -117,23 +110,20 @@ def main():
 
     folder_path = os.path.join(ROOT_DIR,'Aehn3Test')
 
-    # 遍历所有文件夹及其子文件夹
+
     for root, dirs, files in os.walk(folder_path):
-        # 遍历每个文件夹中的所有文件
         for file in files:
-            # 如果文件是pcd文件，则进行处理
             if file.endswith('.pcd'):
                 pcd_path = os.path.join(root, file)
-                # 在这里添加你要执行的代码，例如读取pcd文件
                 pcds.append(pcd_path)
 
     for pcd in pcds:
 
-        pcdd = o3d.io.read_point_cloud(pcd)  # 路径需要根据实际情况设置
-        pcdata = np.asarray(pcdd.points)  # A已经变成n*3的矩阵
+        pcdd = o3d.io.read_point_cloud(pcd)
+        pcdata = np.asarray(pcdd.points)
 
         input_pts = pc_normalize(pcdata).cuda().permute(0, 2, 1)
-        point_features = point_nn(input_pts) # 获取pointnn特征
+        point_features = point_nn(input_pts)
         point_pro_features = project_pc(pcdata)
         point_pro_features = np.reshape(point_pro_features,-1)
         

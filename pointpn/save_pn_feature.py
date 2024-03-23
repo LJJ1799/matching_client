@@ -9,7 +9,7 @@ import torch
 import torch.backends.cudnn as cudnn
 import torch.optim
 from extensions.chamfer_dist import ChamferDistanceL2
-import pointnn.models as models
+import pointpn.models as models
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(BASE_DIR)
@@ -41,7 +41,7 @@ def farthest_point_sampling(points, num_samples):
     sampled_indices = np.zeros(num_samples, dtype=np.int32)
     distances = np.full(num_points, np.inf)
 
-    # 随机选择一个起始点
+
     start_index = np.random.randint(num_points)
     sampled_indices[0] = start_index
 
@@ -49,13 +49,13 @@ def farthest_point_sampling(points, num_samples):
         last_sampled_index = sampled_indices[i - 1]
         last_sampled_point = points[last_sampled_index]
 
-        # 计算每个点到最后一个采样点的距离
+
         dist_to_last_sampled = np.linalg.norm(points - last_sampled_point, axis=1)
 
-        # 更新距离数组，保留最小距离
+
         distances = np.minimum(distances, dist_to_last_sampled)
 
-        # 选择最远的点作为下一个采样点
+
         next_sampled_index = np.argmax(distances)
         sampled_indices[i] = next_sampled_index
 
