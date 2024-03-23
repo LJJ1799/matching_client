@@ -1,6 +1,6 @@
 import xml.etree.ElementTree as ET
-from pointnn.save_pn_feature import save_feature
-from pointnn.cossim import pointnn
+from pointpn.save_pn_feature import save_feature
+from pointpn.cossim import pointpn
 from pointnet2.main import pointnet2
 from pointnext.main import pointnext
 from ICP_RMSE import ICP
@@ -26,30 +26,6 @@ def matching(data_folder,xml_file,model,dienst_number,pose_estimation=True,save_
     start_time=time.time()
     xml_path=os.path.join(ROOT,data_folder,xml_file)
     data_path = data_folder
-    # if model == 'POSE':
-    #     # split_models('data3', 'data3/train/models','data3/test/models')
-    #     # pfe = PFE(path_models=os.path.join(ROOT, 'data3', 'train', 'models'),
-    #     #           path_split=os.path.join(ROOT, 'data3', 'train', 'split'),
-    #     #           path_label_temp=os.path.join(ROOT, 'data3', 'train', 'label_temp_folder'),
-    #     #           path_classes=os.path.join(ROOT, 'data3', 'train', 'parts_classification'),
-    #     #           parallel=True,
-    #     #           n_clusters=8,
-    #     #           )
-    #     # clustering(pfe)
-    #     # lut = LookupTable(path_data=data_path, label='HFD',
-    #     #                   hfd_path_classes=os.path.join(data_path, 'train/parts_classification'),
-    #     #                   pcl_density=40, crop_size=400, num_points=2048, \
-    #     #                   skip_sampling=False,
-    #     #                   skip_slicing=False, fast_sampling=True,
-    #     #                   decrease_lib=False)
-    #     # lut.make(2)
-    #     # tr=TrainPointNet2(path_data=data_path)
-    #     # tr.make_dataset(crop_size=255,num_points=2048)
-    #     te=PoseLookup(path_data=data_path)
-    #     # te.processing(path_test=str(data_path)+'/test/models/')
-    #     # tr.train()
-    #     te.inference(model_path='./data3/seg_model/model1.ckpt',test_input='./data3/test/welding_zone_test')
-    # else:
     tree = ET.parse(xml_path)
     root = tree.getroot()
     SNahts = root.findall("SNaht")
@@ -91,35 +67,35 @@ def matching(data_folder,xml_file,model,dienst_number,pose_estimation=True,save_
     elif model == 'pointnn':
         print('run pointnn')
         save_feature(wz_path,slice_name_list)
-        retrieved_map=pointnn(SNahts,tree,xml_path)
+        retrieved_map=pointpn(SNahts,tree,xml_path)
 
     elif model == 'pointnet2':
-        if dienst_number==61:
+        if dienst_number==1:
             print('training pointnet2')
             os.system('python pointnet2/train_siamese_fortools.py --file_path data/Reisch')
             print("pointnet2 training finished")
             return
-        elif dienst_number==63:
+        elif dienst_number==2:
             print('run pointnet2')
             retrieved_map,retrieved_map_name,tree=pointnet2(wz_path,SNahts,tree,xml_path,slice_name_list)
 
     elif model == 'pointnext':
-        if dienst_number==61:
+        if dienst_number==1:
             print('training pointnext')
             os.system('python pointnext/classification/main.py --file_path data/Reisch')
             print("pointnext training finished")
             return
-        elif dienst_number==63:
+        elif dienst_number==2:
             print('run pointnext')
             retrieved_map,retrieved_map_name,tree=pointnext(wz_path,SNahts,tree,xml_path,slice_name_list)
-    print('gt_map',gt_name_map)
-    print('retrieved_map_name',retrieved_map_name)
-    #
-    tree.write(os.path.join(xml_output_path, Baugruppe + '_similar.xml'))
-    metric=mean_metric(gt_id_map,retrieved_map)
-    print('metric',metric)
-    if auto_del:
-        shutil.rmtree(wz_path)
+    # print('gt_map',gt_name_map)
+    # print('retrieved_map_name',retrieved_map_name)
+    # #
+    # tree.write(os.path.join(xml_output_path, Baugruppe + '_similar.xml'))
+    # metric=mean_metric(gt_id_map,retrieved_map)
+    # print('metric',metric)
+    # if auto_del:
+    #     shutil.rmtree(wz_path)
 
     if pose_estimation:
         print('POSE ESTIMATION')
@@ -145,9 +121,9 @@ def matching(data_folder,xml_file,model,dienst_number,pose_estimation=True,save_
 if __name__ == "__main__":
 
     data_folder=os.path.join(ROOT,'data')
-    xml='Reisch_origin.xml'
-    model='icp'
+    xml='Reisch.xml'
+    model='pointnext'
     pose_estimation=True
-    dienst_number=63## 1 training_similarity;2 predict torch pose; 3 training LUT
+    dienst_number=2## 1 training_similarity;2 predict torch pose; 3 training LUT
     matching(data_folder, xml, model,dienst_number,pose_estimation=True,save_image=False,auto_del=False)
 
