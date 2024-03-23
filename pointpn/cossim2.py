@@ -21,7 +21,7 @@ query_pcn = names[query_id]
 #         similarity = cosine_similarity([cur_feature], query_pcf)
 #         sims.append(similarity)
 #     else:
-#         sims.append(9999) # 跳过自己
+#         sims.append(9999)
 
 similarity = cosine_similarity(features,np.reshape(query_pcf,(1,-1))).reshape(-1)
 
@@ -35,14 +35,11 @@ for idx in sorted_idx:
     #     print(idx)
     if idx == query_id:
         print(cname+' query pcd! '+str(idx)+':'+str(similarity[idx]))
-        # 读取pcd文件
         pcd = o3d.io.read_point_cloud(cname)
-        # 可视化点云
         # o3d.visualization.draw_geometries_with_editing([pcd], window_name="Open3D", width=800, height=600)
     else:
         print(cname+' sim pcd! '+str(idx)+':'+str(similarity[idx]))
         pcd = o3d.io.read_point_cloud( cname)
-        # 可视化点云
         # o3d.visualization.draw_geometries_with_editing([pcd], window_name="Open3D", width=800, height=600)
 
 
