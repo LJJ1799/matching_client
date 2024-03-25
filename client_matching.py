@@ -59,13 +59,13 @@ def matching(data_folder,xml_file,model,dienst_number,pose_estimation=True,save_
         o3d.io.write_point_cloud(os.path.join(wz_path, slice_name + '.pcd'), pointcloud=pc, write_ascii=True)
 
     retrieved_map={}
-    methoe_time=time.time()
+    methode_time=time.time()
     if model == 'icp':
         print('run icp')
         retrieved_map,retrieved_map_name,tree=ICP(SNahts,wz_path,tree,xml_path)
 
-    elif model == 'pointnn':
-        print('run pointnn')
+    elif model == 'pointpn':
+        print('run pointpn')
         save_feature(wz_path,slice_name_list)
         retrieved_map=pointpn(SNahts,tree,xml_path)
 
@@ -88,14 +88,14 @@ def matching(data_folder,xml_file,model,dienst_number,pose_estimation=True,save_
         elif dienst_number==2:
             print('run pointnext')
             retrieved_map,retrieved_map_name,tree=pointnext(wz_path,SNahts,tree,xml_path,slice_name_list)
-    # print('gt_map',gt_name_map)
-    # print('retrieved_map_name',retrieved_map_name)
-    # #
-    # tree.write(os.path.join(xml_output_path, Baugruppe + '_similar.xml'))
-    # metric=mean_metric(gt_id_map,retrieved_map)
-    # print('metric',metric)
-    # if auto_del:
-    #     shutil.rmtree(wz_path)
+    print('gt_map',gt_name_map)
+    print('retrieved_map_name',retrieved_map_name)
+    #
+    tree.write(os.path.join(xml_output_path, Baugruppe + '_similar.xml'))
+    metric=mean_metric(gt_id_map,retrieved_map)
+    print('metric',metric)
+    if auto_del:
+        shutil.rmtree(wz_path)
 
     if pose_estimation:
         print('POSE ESTIMATION')
@@ -103,8 +103,8 @@ def matching(data_folder,xml_file,model,dienst_number,pose_estimation=True,save_
         tree.write(os.path.join(xml_output_path, Baugruppe + '_predict.xml'))
     #
     # tree.write(os.path.join(xml_output_path,Baugruppe+'.xml'))
-    # if save_image:
-    #     image_save(retrieved_map_name,wz_path)
+    if save_image:
+        image_save(retrieved_map_name,wz_path)
     #
     # print('gt_map',gt_id_map)
     # print('retrieved_map',retrieved_map)
@@ -122,8 +122,8 @@ if __name__ == "__main__":
 
     data_folder=os.path.join(ROOT,'data')
     xml='Reisch.xml'
-    model='pointnext'
+    model='icp'
     pose_estimation=True
-    dienst_number=2## 1 training_similarity;2 predict torch pose; 3 training LUT
-    matching(data_folder, xml, model,dienst_number,pose_estimation=True,save_image=False,auto_del=False)
+    dienst_number=2## 1 training_similarity;2 similarity; 3 pose estimation
+    matching(data_folder, xml, model,dienst_number,pose_estimation=False,save_image=False,auto_del=False)
 

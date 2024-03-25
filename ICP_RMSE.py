@@ -86,21 +86,21 @@ def ICP(SNahts,wz_path,tree,xml_path):
             if rmse_s_t > 0.03 or correspondence_s_t < 1900:
                 continue
 
-            # icp_t_s = o3d.pipelines.registration.registration_icp(source=tgt_cloud, target=src_cloud,
-            #                                                       max_correspondence_distance=0.2,
-            #                                                       estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPoint())
-            #
-            # # mean_distance_t_s = np.mean(tgt_cloud.compute_point_cloud_distance(src_cloud))
-            # toc=time.time()
-            # # print(toc-tic)
-            # fitness_t_s = icp_t_s.fitness
-            # rmse_t_s = icp_t_s.inlier_rmse
-            # correspondence_t_s = len(np.asarray(icp_t_s.correspondence_set))
-            # src_cloud.paint_uniform_color([1, 0, 0])
-            # tgt_cloud.paint_uniform_color([0, 1, 0])
-            # # o3d.visualization.draw_geometries([src_cloud, tgt_cloud], width=800)
-            # if rmse_t_s > 0.03 or correspondence_t_s < 1900:
-            #     continue
+            icp_t_s = o3d.pipelines.registration.registration_icp(source=tgt_cloud, target=src_cloud,
+                                                                  max_correspondence_distance=0.2,
+                                                                  estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPoint())
+
+            # mean_distance_t_s = np.mean(tgt_cloud.compute_point_cloud_distance(src_cloud))
+            toc=time.time()
+            # print(toc-tic)
+            fitness_t_s = icp_t_s.fitness
+            rmse_t_s = icp_t_s.inlier_rmse
+            correspondence_t_s = len(np.asarray(icp_t_s.correspondence_set))
+            src_cloud.paint_uniform_color([1, 0, 0])
+            tgt_cloud.paint_uniform_color([0, 1, 0])
+            # o3d.visualization.draw_geometries([src_cloud, tgt_cloud], width=800)
+            if rmse_t_s > 0.03 or correspondence_t_s < 1900:
+                continue
 
             similar_list.append(tgt_ID)
             similar_list_name.append(tgt_name)
