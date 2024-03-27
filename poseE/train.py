@@ -112,7 +112,7 @@ def load_dataset(directory_path):
     xml_files = find_xml_files(directory_path)
 
     result_json = []
-    # 打印找到的XML文件路径
+
     for path in xml_files:
         result_json += get_json(path)
     dataset = PointCloudDataset(result_json, welding_gun_pcd)
@@ -125,24 +125,18 @@ def training(dataset_path):
     dataset,welding_gun_pcd=load_dataset(dataset_path)
     epochs = 80
     welding_gun_pcd = welding_gun_pcd.cuda()
-
     for epoch in range(epochs):
         for i, data in enumerate(dataset):
             point_cloud, weld_position, true_rotation_matrix = data
             point_cloud = point_cloud.cuda()
             weld_position = weld_position.cuda()
             true_rotation_matrix = true_rotation_matrix.cuda()
-
             optimizer.zero_grad()
             predicted_euler_angles = model(point_cloud.unsqueeze(0), weld_position.unsqueeze(0),
                                            welding_gun_pcd.unsqueeze(0))
-
             true_euler_angles = rotation_matrix_to_euler_angles(true_rotation_matrix).cuda()
-
-            # 计算损失
             loss = loss_function(predicted_euler_angles, true_euler_angles)
             loss.backward()
             optimizer.step()
-
             if i % 1000 == 0:
                 print(f"Epoch [{epoch + 1}/{epochs}], Step [{i + 1}/{len(dataset)}], Loss: {loss.item()}")

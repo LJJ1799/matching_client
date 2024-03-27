@@ -88,8 +88,8 @@ def matching(data_folder,xml_file,model,dienst_number,pose_estimation=True,save_
         elif dienst_number==2:
             print('run pointnext')
             retrieved_map,retrieved_map_name,tree=pointnext(wz_path,SNahts,tree,xml_path,slice_name_list)
-    print('gt_map',gt_name_map)
-    print('retrieved_map_name',retrieved_map_name)
+    # print('gt_map',gt_name_map)
+    # print('retrieved_map_name',retrieved_map_name)
     #
     tree.write(os.path.join(xml_output_path, Baugruppe + '_similar.xml'))
     metric=mean_metric(gt_id_map,retrieved_map)
@@ -106,8 +106,8 @@ def matching(data_folder,xml_file,model,dienst_number,pose_estimation=True,save_
     if save_image:
         image_save(retrieved_map_name,wz_path)
     #
-    # print('gt_map',gt_id_map)
-    # print('retrieved_map',retrieved_map)
+    print('gt_map',gt_id_map)
+    print('retrieved_map',retrieved_map)
     #
     # metric=mean_metric(gt_id_map,retrieved_map)
     # print('metric',metric)
@@ -122,8 +122,8 @@ if __name__ == "__main__":
 
     data_folder=os.path.join(ROOT,'data')
     xml='Reisch.xml'
-    model='icp'
+    model='pointnext'
     pose_estimation=True
     dienst_number=2## 1 training_similarity;2 similarity; 3 pose estimation
-    matching(data_folder, xml, model,dienst_number,pose_estimation=False,save_image=False,auto_del=False)
+    matching(data_folder, xml, model,dienst_number,pose_estimation=True,save_image=False,auto_del=False)
 

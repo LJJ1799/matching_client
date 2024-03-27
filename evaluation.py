@@ -20,9 +20,7 @@ def avg_prec(correct_duplicates: List, retrieved_duplicates: List) -> float:
         return 0.0
 
     count_real_correct = len(correct_duplicates)
-    relevance = np.array(
-        [1 if i in correct_duplicates else 0 for i in retrieved_duplicates]
-    )
+    relevance = np.array([1 if i in correct_duplicates else 0 for i in retrieved_duplicates])
     relevance_cumsum = np.cumsum(relevance)
     prec_k = [relevance_cumsum[k] / (k + 1) for k in range(len(relevance))]
     prec_and_relevance = [relevance[k] * prec_k[k] for k in range(len(relevance))]

@@ -430,9 +430,9 @@ class WeldScene:
         # print(weld_info)
         torch_path='./data/torch/MRW510_10GH.obj'
         torch_model=o3d.io.read_triangle_mesh(torch_path)
-        tf=np.zeros((4,4))
-        tf[3,3]=1.0
-        tf[0:3,0:3]=weld_info[1,14:23].reshape(3,3).T
+        # tf=np.zeros((4,4))
+        # tf[3,3]=1.0
+        # tf[0:3,0:3]=weld_info[1,14:23].reshape(3,3).T
         # tf[0:3,3]=weld_info[0,1:4].reshape(1,3)
 
 
@@ -444,10 +444,10 @@ class WeldScene:
         pc.translate(-translate)
         weld_seam.translate(-translate)
         # print(np.array([weld_seam.points[0]]))
-        tf[0:3, 3]=np.array([weld_seam.points[0]]).reshape(3,)
+        # tf[0:3, 3]=np.array([weld_seam.points[0]]).reshape(3,)
         # print('tf',tf)
-        torch_model.compute_vertex_normals()
-        torch_model.transform(tf)
+        # torch_model.compute_vertex_normals()
+        # torch_model.transform(tf)
         extent = 250
         # crop_extent = np.array([max(x_diff,extent), max(y_diff,extent),max(z_diff,extent)])
         crop_extent=np.array([distance,extent+5,extent+5])
@@ -457,9 +457,9 @@ class WeldScene:
         rot = weld_info[0,10:13] * np.pi / 180
         rotation = rotate_mat(axis=[1, 0, 0], radian=rot[0])
 
-        tf1 = np.zeros((4, 4))
-        tf1[3, 3] = 1.0
-        tf1[0:3, 0:3] = rotation
+        # tf1 = np.zeros((4, 4))
+        # tf1[3, 3] = 1.0
+        # tf1[0:3, 0:3] = rotation
         # pc.transform(tf)
         # weld_seam.transform(tf)
         # new normals

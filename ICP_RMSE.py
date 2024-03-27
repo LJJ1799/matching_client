@@ -98,10 +98,10 @@ def ICP(SNahts,wz_path,tree,xml_path):
             correspondence_t_s = len(np.asarray(icp_t_s.correspondence_set))
             src_cloud.paint_uniform_color([1, 0, 0])
             tgt_cloud.paint_uniform_color([0, 1, 0])
-            # o3d.visualization.draw_geometries([src_cloud, tgt_cloud], width=800)
+
             if rmse_t_s > 0.03 or correspondence_t_s < 1900:
                 continue
-
+            # o3d.visualization.draw_geometries([src_cloud, tgt_cloud], width=800)
             similar_list.append(tgt_ID)
             similar_list_name.append(tgt_name)
             if similar_str=='':
