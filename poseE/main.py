@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 import open3d as o3d
 from torch.utils.data import Dataset
 import os
@@ -201,15 +202,15 @@ def poseestimation(data_path,wz_path,xml_path,SNahts,tree,retrieved_map,vis=Fals
                 weld_spot.translate(-translate)
                 translate_weld_spot_points = np.array(weld_spot.points)
                 pose_position = torch.tensor(translate_weld_spot_points.reshape(3, ), dtype=torch.float32).cuda()
-                rotation_matrix=weld_info[i,14:23].reshape((3,3))
-                rotation_matrix = torch.tensor(rotation_matrix.astype(float), dtype=torch.float32).cuda()
+                # rotation_matrix=weld_info[i,14:23].reshape((3,3))
+                # rotation_matrix = torch.tensor(rotation_matrix.astype(float), dtype=torch.float32).cuda()
 
                 # print(rotation_matrix)
                 predicted_euler_angle = model(point_cloud.unsqueeze(0), pose_position.unsqueeze(0),
                                                   welding_gun_pcd.unsqueeze(0))
                 predicted_rotation_matrix = euler_angles_to_rotation_matrix(predicted_euler_angle)
-                print('euler',predicted_euler_angle)
-                print('predict',predicted_rotation_matrix)
+                # print('euler',predicted_euler_angle)
+                # print('predict',predicted_rotation_matrix)
 
                 if vis:
                     elements = []
@@ -225,28 +226,41 @@ def poseestimation(data_path,wz_path,xml_path,SNahts,tree,retrieved_map,vis=Fals
                     tf[0:3,0:3]=np.transpose(np.array(predicted_rotation_matrix.cpu()).reshape(3,3))
                     tf[0:3,3]=translate_weld_spot_points
 
-                    gt_tf = np.zeros((4, 4))
-                    gt_tf[3, 3] = 1.0
-                    gt_tf[0:3,0:3]=np.transpose(np.array(rotation_matrix.cpu()))
-                    gt_tf[0:3,3]=translate_weld_spot_points
-                    GT_torch.compute_vertex_normals()
-                    GT_torch.paint_uniform_color([0, 0, 1])
-                    GT_torch.transform(gt_tf)
+                    # gt_tf = np.zeros((4, 4))
+                    # gt_tf[3, 3] = 1.0
+                    # gt_tf[0:3,0:3]=np.transpose(np.array(rotation_matrix.cpu()))
+                    # gt_tf[0:3,3]=translate_weld_spot_points
+                    # GT_torch.compute_vertex_normals()
+                    # GT_torch.paint_uniform_color([0, 0, 1])
+                    # GT_torch.transform(gt_tf)
 
 
                     # print('tf',tf)
+                    # theta = np.pi*0.5
+                    # rotation_matrix_kkk = np.array([[np.cos(theta), 0, np.sin(theta)],
+                    #                             [0, 1, 0],
+                    #                             [-np.sin(theta), 0, np.cos(theta)]])
+                    # copy_torch.rotate(rotation_matrix_kkk, center=(0, 0, 0))
+
                     copy_torch.compute_vertex_normals()
                     copy_torch.paint_uniform_color([0,1,0])
                     copy_torch.transform(tf)
-                    elements.append(GT_torch)
+
+
+
+
+                    # elements.append(GT_torch)
                     elements.append(copy_torch)
                     elements.append(weld_seam)
-                    o3d.visualization.draw_geometries(elements)
+                    # print('rotation_matrix',rotation_matrix)
+                    print('predicted_rotation_matrix',predicted_rotation_matrix.squeeze(0))
+                    # print('mse',F.mse_loss(rotation_matrix,predicted_rotation_matrix.squeeze(0)))
+                    # o3d.visualization.draw_geometries(elements)
 
 
                 slice_rot_list.append(predicted_rotation_matrix.squeeze(0))
                 predict_rot_dict[key] = predicted_rotation_matrix.squeeze(0)
-                true_matrices.append(rotation_matrix)
+                # true_matrices.append(rotation_matrix)
                 predicted_matrices.append(predicted_rotation_matrix.squeeze(0))
             slice_rot_dict[key]=slice_rot_list
             if len(vals)==0:
