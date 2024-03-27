@@ -270,11 +270,11 @@ def poseestimation(data_path,wz_path,xml_path,SNahts,tree,retrieved_map,vis=Fals
                     continue
                 else:
                     slice_rot_dict[val]=slice_rot_list
-        true_matrices = torch.stack(true_matrices)
+        # true_matrices = torch.stack(true_matrices)
         predicted_matrices = torch.stack(predicted_matrices)
-        mse = torch.mean((true_matrices - predicted_matrices) ** 2)
-        print(f"Mean Squared Error: {mse}")
-        print('slice_rot_dict',slice_rot_dict)
+        # mse = torch.mean((true_matrices - predicted_matrices) ** 2)
+        # print(f"Mean Squared Error: {mse}")
+        # print('slice_rot_dict',slice_rot_dict)
         for SNaht in SNahts:
             slice_name=SNaht.attrib.get('Name')
             rotation_matrix_list=slice_rot_dict[slice_name]
