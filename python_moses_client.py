@@ -78,7 +78,6 @@ if __name__ == "__main__":
     xml_dir=config.get('config','xml_dir')
     auto_del=config.get('config','auto_del')
     model = config.get('config','model')
-    pose_estimation=config.get('config','pose_estimation')
     freuquency=int(config.get('config','frequency'))
     con_socket = connect_moses_socket(host, port)
     send_moses_message(con_socket,"KI_Client", "MOSES_Cl1", 123, 60, 'Verbunden')
@@ -89,12 +88,12 @@ if __name__ == "__main__":
         if service_number==1:
             send_moses_message(con_socket,sender,target,service_number,task_number,'training model '+str(model))
             t1.start()
-            matching(os.path.join(ROOT,xml_dir),data.rstrip(),model,service_number,pose_estimation= False,auto_del=auto_del)
+            matching(os.path.join(ROOT,xml_dir),data.rstrip(),model,service_number,auto_del=auto_del)
             send_moses_message(con_socket,target,sender,service_number,task_number,'finished')
         elif service_number==2:
             send_moses_message(con_socket, sender, target, service_number, task_number, 'Find similar slices using model ' + str(model))
             t1.start()
-            matching(os.path.join(ROOT, xml_dir), data.rstrip(), model, service_number, pose_estimation=pose_estimation,auto_del=auto_del)
+            matching(os.path.join(ROOT, xml_dir), data.rstrip(), model, service_number,auto_del=auto_del)
             send_moses_message(con_socket, target, sender, service_number, task_number, 'finished')
         t1.join()
             # if len(result)==1:
