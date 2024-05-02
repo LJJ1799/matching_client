@@ -14,7 +14,7 @@ import time
 import shutil
 # from model_splitter import split_models
 from create_pc import split,convert
-
+from poseE.train import training
 CURRENT_PATH = os.path.abspath(__file__)
 ROOT = os.path.dirname(CURRENT_PATH)
 # ROOT = os.path.dirname(BASE)
@@ -23,8 +23,9 @@ ROOT = os.path.dirname(CURRENT_PATH)
 
 
 def matching(data_folder,xml_file,model,dienst_number,save_image=False,auto_del=False):
-    if dienst_number==62:
-        training_dir=os.path.join(ROOT,data_folder,'training')
+    if dienst_number==62 or dienst_number==64:
+        # training_dir=os.path.join(ROOT,data_folder)
+        training_dir = data_folder
         xml_list=os.listdir(training_dir)
         for file in xml_list:
             if not file.endswith('.xml'):
@@ -54,17 +55,23 @@ def matching(data_folder,xml_file,model,dienst_number,save_image=False,auto_del=
                 pc = o3d.geometry.PointCloud()
                 pc.points = o3d.utility.Vector3dVector(cxy)
                 o3d.io.write_point_cloud(os.path.join(wz_path, slice_name + '.pcd'), pointcloud=pc, write_ascii=True)
-        if model == 'pointnet2':
-            print('training pointnet2')
-            os.system('python pointnet2/train_siamese_fortools.py --file_path data/training')
-            print("pointnet2 training finished")
-            return
 
-        elif model == 'pointnext':
-            print('training pointnext')
-            os.system('python pointnext/classification/main.py --file_path data/training')
-            print("pointnext training finished")
-            return
+
+        if dienst_number == 62:
+            if model == 'pointnet2':
+                print('training pointnet2')
+                os.system('python pointnet2/train_siamese_fortools.py --file_path data/training_similary')
+                print("pointnet2 training finished")
+                return
+
+            elif model == 'pointnext':
+                print('training pointnext')
+                os.system('python pointnext/classification/main.py --file_path data/training_similary')
+                print("pointnext training finished")
+                return
+        elif dienst_number == 64:
+            training(training_dir)
+
     else:
         start_time=time.time()
         xml_path=os.path.join(ROOT,data_folder,xml_file)
@@ -100,43 +107,46 @@ def matching(data_folder,xml_file,model,dienst_number,save_image=False,auto_del=
             pc.points = o3d.utility.Vector3dVector(cxy)
             o3d.io.write_point_cloud(os.path.join(wz_path, slice_name + '.pcd'), pointcloud=pc, write_ascii=True)
 
-        retrieved_map={}
-        methode_time=time.time()
-        if model == 'icp':
-            print('run icp')
-            retrieved_map,retrieved_map_name,tree=ICP(SNahts,wz_path,tree,xml_path)
+        if dienst_number == 63:
+            retrieved_map={}
+            methode_time=time.time()
+            if model == 'icp':
+                print('run icp')
+                retrieved_map,retrieved_map_name,tree=ICP(SNahts,wz_path,tree,xml_path)
 
-        elif model == 'pointpn':
-            print('run pointpn')
-            save_feature(wz_path,slice_name_list)
-            retrieved_map=pointpn(SNahts,tree,xml_path)
+            elif model == 'pointpn':
+                print('run pointpn')
+                save_feature(wz_path,slice_name_list)
+                retrieved_map=pointpn(SNahts,tree,xml_path)
 
-        elif model == 'pointnet2':
-            if dienst_number==63:
-                print('run pointnet2')
-                retrieved_map,retrieved_map_name,tree=pointnet2(wz_path,SNahts,tree,xml_path,slice_name_list)
+            elif model == 'pointnet2':
+                if dienst_number==63:
+                    print('run pointnet2')
+                    retrieved_map,retrieved_map_name,tree=pointnet2(wz_path,SNahts,tree,xml_path,slice_name_list)
 
-        elif model == 'pointnext':
-            if dienst_number==63:
-                print('run pointnext')
-                retrieved_map,retrieved_map_name,tree=pointnext(wz_path,SNahts,tree,xml_path,slice_name_list)
-        # print('gt_map',gt_name_map)
-        # print('retrieved_map_name',retrieved_map_name)
-        #
-        tree.write(os.path.join(xml_output_path, Baugruppe + '_similar.xml'))
-        metric=mean_metric(gt_id_map,retrieved_map)
-        print('metric',metric)
-        if auto_del:
-            shutil.rmtree(wz_path)
+            elif model == 'pointnext':
+                if dienst_number==63:
+                    print('run pointnext')
+                    retrieved_map,retrieved_map_name,tree=pointnext(wz_path,SNahts,tree,xml_path,slice_name_list)
+            # print('gt_map',gt_name_map)
+            # print('retrieved_map_name',retrieved_map_name)
+            #
+            tree.write(os.path.join(xml_output_path, Baugruppe + '_similar.xml'))
+            metric=mean_metric(gt_id_map,retrieved_map)
+            print('metric',metric)
 
-        if dienst_number==61:
+
+        elif dienst_number==61:
             print('POSE ESTIMATION')
-            tree=poseestimation(data_path,wz_path,xml_path,SNahts,tree,retrieved_map_name,vis=True)
+            tree=poseestimation(data_path,wz_path,xml_path,SNahts,tree,gt_name_map,vis=True)
             tree.write(os.path.join(xml_output_path, Baugruppe + '_predict.xml'))
         #
         # tree.write(os.path.join(xml_output_path,Baugruppe+'.xml'))
         if save_image:
             image_save(retrieved_map_name,wz_path)
+
+        if auto_del:
+            shutil.rmtree(wz_path)
         #
         print('gt_map',gt_id_map)
         print('retrieved_map',retrieved_map)
@@ -152,9 +162,9 @@ def matching(data_folder,xml_file,model,dienst_number,save_image=False,auto_del=
 
 if __name__ == "__main__":
 
-    data_folder=os.path.join(ROOT,'data')
-    xml='Reisch_origin.xml'
+    data_folder=os.path.join(ROOT,'data/training_PE')
+    xml='Aehn3Test.xml'
     model='pointnext'
-    dienst_number=62## 62 training_similarity;63 similarity; 61 pose estimation
+    dienst_number=64## 62 training_similarity;63 similarity; 61 pose estimation; 64 training_PE
     matching(data_folder, xml, model,dienst_number,save_image=False,auto_del=False)
 

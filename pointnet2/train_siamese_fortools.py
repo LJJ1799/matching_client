@@ -43,7 +43,7 @@ def parse_args():
     parser = argparse.ArgumentParser('Model')
     parser.add_argument('--model', type=str, default='pointnet2_part_seg_msg_siamese', help='model name')
     parser.add_argument('--batch_size', type=int, default=32, help='batch Size during training')
-    parser.add_argument('--epoch', default=251, type=int, help='epoch to run')
+    parser.add_argument('--epoch', default=100, type=int, help='epoch to run')
     parser.add_argument('--dataset', default='data2/Reisch', type=str, help='pu1k or pugan')
     parser.add_argument('--input_num', default=2048, type=str, help='optimizer, adam or sgd')
     parser.add_argument('--file_path', default='data2', type=str, help='the path of train dataset')
@@ -119,7 +119,7 @@ def main(args):
             torch.nn.init.constant_(m.bias.data, 0.0)
 
     try:
-        checkpoint = torch.load('./log/siamese_model/2023-07-10_14-21/checkpoints/best_model.pth')
+        checkpoint = torch.load('./pointnet2/checkpoints/best_model.pth')
         start_epoch = checkpoint['epoch']
         siamese_model.load_state_dict(checkpoint['model_state_dict'])
         log_string('Use pretrain model')

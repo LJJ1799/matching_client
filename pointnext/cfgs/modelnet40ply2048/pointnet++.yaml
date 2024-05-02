@@ -41,4 +41,4 @@ model:
     norm_args: 
       norm: 'bn1d'
 
-epochs: 250
+epochs: 80

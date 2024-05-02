@@ -42,11 +42,11 @@ def parse_args():
     parser = argparse.ArgumentParser('Model')
     parser.add_argument('--model', type=str, default='pointnet2_part_seg_msg_siamese', help='model name')
     parser.add_argument('--batch_size', type=int, default=1, help='batch Size during training')
-    parser.add_argument('--epoch', default=251, type=int, help='epoch to run')
+    parser.add_argument('--epoch', default=100, type=int, help='epoch to run')
     parser.add_argument('--dataset', default='data', type=str, help='pu1k or pugan')
     parser.add_argument('--input_num', default=2048, type=str, help='optimizer, adam or sgd')
     parser.add_argument('--file_path', default=os.path.join(ROOT_DIR,'data','Aehn3Test_welding_zone'), help='model name')
-    parser.add_argument('--model_path', default=os.path.join(BASE_DIR,'checkpoints','best_model.pth'), help='model name')
+    parser.add_argument('--model_path', default=os.path.join(BASE_DIR,'checkpoints','model_100.pth'), help='model name')
 
     return parser.parse_args()
 

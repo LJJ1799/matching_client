@@ -34,7 +34,7 @@ num_classes: 40
 # ---------------------------------------------------------------------------- #
 # this one is better. 
 sched: cosine
-epochs: 140
+epochs: 80
 warmup_epochs: 0
 min_lr: null 
 

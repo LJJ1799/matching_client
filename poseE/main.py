@@ -164,14 +164,14 @@ class PointCloudDataset(Dataset):
 
 from poseE.network import PointCloudNet
 
-def poseestimation(data_path,wz_path,xml_path,SNahts,tree,retrieved_map,vis=False):
+def poseestimation(data_path,wz_path,xml_path,SNahts,tree,map,vis=False):
     weld_infos = get_weld_info(xml_path)
     weld_infos = np.vstack(weld_infos)
     # print(weld_infos[0,:])
     # device = torch.device('cuda:1')
     model = PointCloudNet().cuda()
     # model = model.to(device)
-    model.load_state_dict(torch.load(os.path.join(CURRENT_PATH,'model.pth')))
+    model.load_state_dict(torch.load(os.path.join(CURRENT_PATH, 'checkpoints/model_80.pth')))
     # model=model.to(device)
     true_matrices = []
     predicted_matrices = []
@@ -180,14 +180,14 @@ def poseestimation(data_path,wz_path,xml_path,SNahts,tree,retrieved_map,vis=Fals
     slice_rot_dict={}
     with torch.no_grad():
         coor1 = o3d.geometry.TriangleMesh.create_coordinate_frame(size=50, origin=[0, 0, 0])
-        for key,vals in retrieved_map.items():
+        for key,vals in map.items():
             if key in slice_rot_dict:
                 continue
             pcd = o3d.io.read_point_cloud(os.path.join(wz_path, key + '.pcd'))
             pcd.paint_uniform_color([1,0,0])
             point_cloud = torch.tensor(pcd.points, dtype=torch.float32).cuda()
-            # torch_name=weld_infos[weld_infos[:,0]==key][0,2]
-            torch_name='MRW510_10GH'
+            torch_name=weld_infos[weld_infos[:,0]==key][0,2]
+            # torch_name='MRW510_10GH'
             welding_gun_pcd = read_obj(os.path.join(data_path, 'torch', torch_name + '.obj'))
             welding_gun_pcd = torch.tensor(welding_gun_pcd, dtype=torch.float32).cuda()
             weld_info=weld_infos[weld_infos[:,0]==key][:,3:].astype(float)
@@ -202,8 +202,8 @@ def poseestimation(data_path,wz_path,xml_path,SNahts,tree,retrieved_map,vis=Fals
                 weld_spot.translate(-translate)
                 translate_weld_spot_points = np.array(weld_spot.points)
                 pose_position = torch.tensor(translate_weld_spot_points.reshape(3, ), dtype=torch.float32).cuda()
-                # rotation_matrix=weld_info[i,14:23].reshape((3,3))
-                # rotation_matrix = torch.tensor(rotation_matrix.astype(float), dtype=torch.float32).cuda()
+                rotation_matrix=weld_info[i,14:23].reshape((3,3))
+                rotation_matrix = torch.tensor(rotation_matrix.astype(float), dtype=torch.float32).cuda()
 
                 # print(rotation_matrix)
                 predicted_euler_angle = model(point_cloud.unsqueeze(0), pose_position.unsqueeze(0),
@@ -226,13 +226,13 @@ def poseestimation(data_path,wz_path,xml_path,SNahts,tree,retrieved_map,vis=Fals
                     tf[0:3,0:3]=np.transpose(np.array(predicted_rotation_matrix.cpu()).reshape(3,3))
                     tf[0:3,3]=translate_weld_spot_points
 
-                    # gt_tf = np.zeros((4, 4))
-                    # gt_tf[3, 3] = 1.0
-                    # gt_tf[0:3,0:3]=np.transpose(np.array(rotation_matrix.cpu()))
-                    # gt_tf[0:3,3]=translate_weld_spot_points
-                    # GT_torch.compute_vertex_normals()
-                    # GT_torch.paint_uniform_color([0, 0, 1])
-                    # GT_torch.transform(gt_tf)
+                    gt_tf = np.zeros((4, 4))
+                    gt_tf[3, 3] = 1.0
+                    gt_tf[0:3,0:3]=np.transpose(np.array(rotation_matrix.cpu()))
+                    gt_tf[0:3,3]=translate_weld_spot_points
+                    GT_torch.compute_vertex_normals()
+                    GT_torch.paint_uniform_color([0, 0, 1])
+                    GT_torch.transform(gt_tf)
 
 
                     # print('tf',tf)
@@ -249,18 +249,18 @@ def poseestimation(data_path,wz_path,xml_path,SNahts,tree,retrieved_map,vis=Fals
 
 
 
-                    # elements.append(GT_torch)
+                    elements.append(GT_torch)
                     elements.append(copy_torch)
                     elements.append(weld_seam)
                     # print('rotation_matrix',rotation_matrix)
-                    print('predicted_rotation_matrix',predicted_rotation_matrix.squeeze(0))
-                    # print('mse',F.mse_loss(rotation_matrix,predicted_rotation_matrix.squeeze(0)))
+                    # print('predicted_rotation_matrix',predicted_rotation_matrix.squeeze(0))
+                    print('mse',F.mse_loss(rotation_matrix,predicted_rotation_matrix.squeeze(0)))
                     # o3d.visualization.draw_geometries(elements)
 
 
                 slice_rot_list.append(predicted_rotation_matrix.squeeze(0))
                 predict_rot_dict[key] = predicted_rotation_matrix.squeeze(0)
-                # true_matrices.append(rotation_matrix)
+                true_matrices.append(rotation_matrix)
                 predicted_matrices.append(predicted_rotation_matrix.squeeze(0))
             slice_rot_dict[key]=slice_rot_list
             if len(vals)==0:
@@ -270,11 +270,11 @@ def poseestimation(data_path,wz_path,xml_path,SNahts,tree,retrieved_map,vis=Fals
                     continue
                 else:
                     slice_rot_dict[val]=slice_rot_list
-        # true_matrices = torch.stack(true_matrices)
+        true_matrices = torch.stack(true_matrices)
         predicted_matrices = torch.stack(predicted_matrices)
-        # mse = torch.mean((true_matrices - predicted_matrices) ** 2)
-        # print(f"Mean Squared Error: {mse}")
-        # print('slice_rot_dict',slice_rot_dict)
+        mse = torch.mean((true_matrices - predicted_matrices) ** 2)
+        print(f"Mean Squared Error: {mse}")
+        print('slice_rot_dict',slice_rot_dict)
         for SNaht in SNahts:
             slice_name=SNaht.attrib.get('Name')
             rotation_matrix_list=slice_rot_dict[slice_name]

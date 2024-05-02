@@ -11,8 +11,9 @@ import json
 
 CURRENT_PATH = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(CURRENT_PATH)
+checkpoints_dir = os.path.join(CURRENT_PATH,'checkpoints')
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
+torch_dir = os.path.join(ROOT,'data/torch')
 def rotation_matrix_to_euler_angles(matrix):
     """ Assumes the order of the axes is ZYX """
     sy = torch.sqrt(matrix[0, 0] * matrix[0, 0] +  matrix[1, 0] * matrix[1, 0])
@@ -39,11 +40,13 @@ def find_xml_files(directory):
 
 
 def get_json(xml_file_path):
+    print('xml_file_path',xml_file_path)
     tree = ET.parse(xml_file_path)
     root = tree.getroot()
     data_separated = []
     for snaht in root.findall('.//SNaht'):
         point_cloud_file_name = snaht.attrib['Name']
+        torch_name=snaht.attrib['WkzName']
         for frame in snaht.findall('.//Frame'):
             pos = frame.find('Pos')
             weld_position = [float(pos.attrib['X']), float(pos.attrib['Y']), float(pos.attrib['Z'])]
@@ -56,12 +59,13 @@ def get_json(xml_file_path):
                 [float(x_vek.attrib['Z']), float(y_vek.attrib['Z']), float(z_vek.attrib['Z'])]
             ]
             data_separated.append({
-                "point_cloud_file_name": os.path.join('\\'.join(xml_file_path.split('\\')[:-1]),
+                "point_cloud_file_name": os.path.join(xml_file_path.split('.')[0],
                                                       (point_cloud_file_name + '.pcd')),
                 "weld_position": weld_position,
-                "rotation_matrix": rotation_matrix
+                "rotation_matrix": rotation_matrix,
+                "torch_name": torch_name
             })
-    print(data_separated[:3])
+    print(data_separated[:4])
     return data_separated
 
 def read_obj(file_path):
@@ -86,9 +90,8 @@ def read_obj(file_path):
 
 
 class PointCloudDataset(Dataset):
-    def __init__(self, json_data, welding_gun_pcd):
+    def __init__(self, json_data):
         self.data = json_data
-        self.welding_gun_pcd = welding_gun_pcd
 
     def __len__(self):
         return len(self.data)
@@ -96,13 +99,17 @@ class PointCloudDataset(Dataset):
     def __getitem__(self, idx):
         item = self.data[idx]
         point_cloud_file_name = item['point_cloud_file_name']
+        print('point_cloud_file_name',point_cloud_file_name)
         weld_position = torch.tensor(item['weld_position'], dtype=torch.float32)
         rotation_matrix = torch.tensor(item['rotation_matrix'], dtype=torch.float32)
-
+        torch_name = item['torch_name']
         pcd = o3d.io.read_point_cloud(point_cloud_file_name)
+
+        torch_pcd = read_obj(os.path.join(torch_dir, torch_name + '.obj'))
+        torch_pcd = torch.tensor(torch_pcd, dtype=torch.float32).cuda()
         point_cloud = torch.tensor(pcd.points, dtype=torch.float32)
 
-        return point_cloud.cuda(), weld_position.cuda(), rotation_matrix.cuda()
+        return point_cloud.cuda(), weld_position.cuda(), rotation_matrix.cuda(),torch_pcd.cuda()
 
 
 def load_dataset(directory_path):
@@ -115,7 +122,7 @@ def load_dataset(directory_path):
 
     for path in xml_files:
         result_json += get_json(path)
-    dataset = PointCloudDataset(result_json, welding_gun_pcd)
+    dataset = PointCloudDataset(result_json)
     return dataset,welding_gun_pcd
 
 def training(dataset_path):
@@ -127,16 +134,26 @@ def training(dataset_path):
     welding_gun_pcd = welding_gun_pcd.cuda()
     for epoch in range(epochs):
         for i, data in enumerate(dataset):
-            point_cloud, weld_position, true_rotation_matrix = data
+            point_cloud, weld_position, true_rotation_matrix,torch_pcd = data
+            # print(point_cloud,'\n',weld_position,'\n',true_rotation_matrix,'\n')
             point_cloud = point_cloud.cuda()
             weld_position = weld_position.cuda()
             true_rotation_matrix = true_rotation_matrix.cuda()
             optimizer.zero_grad()
             predicted_euler_angles = model(point_cloud.unsqueeze(0), weld_position.unsqueeze(0),
-                                           welding_gun_pcd.unsqueeze(0))
+                                           torch_pcd.unsqueeze(0))
             true_euler_angles = rotation_matrix_to_euler_angles(true_rotation_matrix).cuda()
             loss = loss_function(predicted_euler_angles, true_euler_angles)
             loss.backward()
             optimizer.step()
             if i % 1000 == 0:
                 print(f"Epoch [{epoch + 1}/{epochs}], Step [{i + 1}/{len(dataset)}], Loss: {loss.item()}")
+
+        if (epoch%5 == 0):
+            savepath = os.path.join(checkpoints_dir,'model_{}.pth'.format(epoch))#str(checkpoints_dir) + 'model_{}.pth'.format(epoch)
+            state = {
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+            }
+            torch.save(state, savepath)
